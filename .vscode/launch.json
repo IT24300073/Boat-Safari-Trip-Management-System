@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-BoatSafariApplication<BOAT-SAFARI>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "SE.BOAT.SAFARI.BoatSafariApplication",
+            "projectName": "BOAT-SAFARI",
+            "args": "",
+            "vmArgs": "-Djava.net.preferIPv4Stack=true",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
