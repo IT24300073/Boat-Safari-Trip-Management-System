@@ -10,7 +10,7 @@ function BookTrip() {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
 
-  // 🔹 Redirect if user not logged in
+  // Redirect if user not logged in
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (!isLoggedIn) {
@@ -37,56 +37,85 @@ function BookTrip() {
   };
 
   return (
-    <div className="book-trip-container">
-      <h1 className="title">Available Trips</h1>
-
-      {loadingTrips ? (
-        <p className="loading">Loading trips...</p>
-      ) : trips.length === 0 ? (
-        <p className="no-trips">No trips available.</p>
-      ) : (
-        <div className="trip-grid">
-          {trips.map((trip) => (
-            <div key={trip.id} className="trip-card">
-              <div className="trip-header">
-                <h2>{trip.name}</h2>
-                <span className="trip-type">{trip.type}</span>
-              </div>
-              <div className="trip-details">
-                <p>
-                  <strong>Adult Price:</strong> LKR {trip.adultPrice}
-                </p>
-                {trip.childPrice && (
-                  <p>
-                    <strong>Child Price:</strong> LKR {trip.childPrice}
-                  </p>
-                )}
-                <p>
-                  <strong>Starting Time:</strong> {trip.startingTime}
-                </p>
-                <p>
-                  <strong>Duration:</strong> {trip.duration}
-                </p>
-                <p className="description">{trip.description}</p>
-              </div>
-              <button
-                className="book-btn"
-                onClick={() => handleSelectTrip(trip)}
-              >
-                Book Now
-              </button>
-            </div>
-          ))}
+    <div className="book-trip-page">
+      {/* Header Banner */}
+      <div className="trip-banner-section">
+        <div className="trip-banner-content">
+          <span className="banner-subtitle">SELECT YOUR ADVENTURE</span>
+          <h1>Available Safari Packages</h1>
+          <p>Choose your preferred boat tour schedule, price tier, and duration for an amazing water safari.</p>
         </div>
-      )}
+      </div>
+
+      <div className="trip-content-container">
+        {loadingTrips ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading available safari packages...</p>
+          </div>
+        ) : trips.length === 0 ? (
+          <div className="empty-trips-card">
+            <div className="empty-icon">⛵</div>
+            <h3>No Safari Trips Scheduled</h3>
+            <p>There are no active trips listed right now. Please check back soon or contact support.</p>
+          </div>
+        ) : (
+          <div className="trip-cards-grid">
+            {trips.map((trip) => (
+              <div key={trip.id} className="modern-trip-card">
+                <div className="trip-card-top">
+                  <div className="trip-type-badge">{trip.type || "Shared"} Safari</div>
+                  <h2 className="trip-title">{trip.name}</h2>
+                </div>
+
+                <div className="trip-card-body">
+                  <p className="trip-description">{trip.description || "Experience scenic nature views with certified captains."}</p>
+
+                  <div className="trip-info-pills">
+                    <div className="info-pill">
+                      <span className="pill-icon">⏰</span>
+                      <span><strong>Time:</strong> {trip.startingTime || "Flexible"}</span>
+                    </div>
+                    <div className="info-pill">
+                      <span className="pill-icon">⏱️</span>
+                      <span><strong>Duration:</strong> {trip.duration || "2 Hours"}</span>
+                    </div>
+                  </div>
+
+                  <div className="trip-price-box">
+                    <div className="price-tag">
+                      <span className="price-label">Adult Price</span>
+                      <span className="price-value">LKR {trip.adultPrice}</span>
+                    </div>
+                    {trip.childPrice && (
+                      <div className="price-tag child">
+                        <span className="price-label">Child Price</span>
+                        <span className="price-value">LKR {trip.childPrice}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="trip-card-footer">
+                  <button
+                    className="btn-select-trip"
+                    onClick={() => handleSelectTrip(trip)}
+                  >
+                    Select & Reserve Seat ➔
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {showBooking && selectedTrip && (
-        <div className="modal-overlay">
-          <Booking trip={selectedTrip} setShowBooking={setShowBooking} />
-        </div>
+        <Booking trip={selectedTrip} setShowBooking={setShowBooking} />
       )}
     </div>
   );
 }
 
 export default BookTrip;
+

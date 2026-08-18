@@ -13,7 +13,6 @@ function Invoice() {
 
   const invoiceRef = useRef();
 
-  // Fetch booking details
   useEffect(() => {
     setLoadingBooking(true);
     fetch(`http://localhost:8080/api/bookings/${id}`)
@@ -26,13 +25,11 @@ function Invoice() {
       .finally(() => setLoadingBooking(false));
   }, [id]);
 
-  // Print invoice locally
   const handlePrint = useReactToPrint({
     content: () => invoiceRef.current,
-    documentTitle: `Invoice_${id}`,
+    documentTitle: `ALOKA_Safari_Invoice_${id}`,
   });
 
-  // Download from backend as PDF
   const handleDownloadBackend = () => {
     setDownloading(true);
     setDownloadError(null);
@@ -60,70 +57,100 @@ function Invoice() {
   };
 
   if (loadingBooking) {
-    return <p className="loading-text">Loading invoice...</p>;
+    return (
+      <div className="invoice-loading-screen">
+        <div className="spinner"></div>
+        <p>Generating your safari invoice...</p>
+      </div>
+    );
   }
 
   if (!booking) {
-    return <p className="error-text">Booking not found.</p>;
+    return (
+      <div className="invoice-loading-screen">
+        <div className="error-icon">❌</div>
+        <p>Booking reservation record not found.</p>
+        <button className="btn-return-home" onClick={() => navigate("/booktrip")}>
+          Return to Safari Booking
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="invoice-container">
-      <div className="invoice-box" ref={invoiceRef}>
-        {/* Close Button Top Right */}
-        <button className="close-btn-top" onClick={() => navigate("/booktrip")}>
-          ✖
+    <div className="invoice-page-wrapper">
+      <div className="invoice-card-container" ref={invoiceRef}>
+        <button className="close-invoice-btn" onClick={() => navigate("/booktrip")} title="Close Invoice">
+          ✕
         </button>
 
-        <div className="invoice-header">
-          <h1 className="invoice-title">Boat Safari Invoice</h1>
-          <p className="invoice-date">{new Date(booking.safariDate).toLocaleDateString()}</p>
+        {/* Invoice Header */}
+        <div className="invoice-card-header">
+          <div className="invoice-brand">
+            <span className="brand-logo-icon">🚤</span>
+            <div>
+              <h2>ALOKA SAFARI</h2>
+              <span className="brand-tagline">Official Booking Reservation Invoice</span>
+            </div>
+          </div>
+          <div className="invoice-meta-badge">
+            <span className="invoice-id-tag">INVOICE #{booking.id}</span>
+            <span className="invoice-date-tag">Date: {new Date(booking.safariDate).toLocaleDateString()}</span>
+          </div>
         </div>
 
-        <hr className="divider" />
+        <div className="invoice-divider"></div>
 
-        <div className="invoice-section">
-          <h2>Customer Details</h2>
-          <p><strong>Name:</strong> {booking.name}</p>
-          <p><strong>Email:</strong> {booking.email}</p>
+        {/* Customer & Trip Details Grid */}
+        <div className="invoice-details-grid">
+          <div className="details-box">
+            <h3>👤 Customer Information</h3>
+            <p><strong>Passenger Name:</strong> {booking.name}</p>
+            <p><strong>Email Address:</strong> {booking.email}</p>
+            <p><strong>Payment Status:</strong> <span className="status-paid">✓ Confirmed</span></p>
+          </div>
+
+          <div className="details-box">
+            <h3>⚓ Reservation Specifications</h3>
+            <p><strong>Boat Assigned:</strong> {booking.boat?.name || "Standard Boat"} ({booking.boat?.boatType || "Luxury"})</p>
+            <p><strong>Trip Experience:</strong> {booking.trip?.name || "Custom Safari"}</p>
+            <p><strong>Adult Passengers:</strong> {booking.adults}</p>
+            <p><strong>Child Passengers:</strong> {booking.children}</p>
+          </div>
         </div>
 
-        <div className="invoice-section">
-          <h2>Booking Details</h2>
-          <p><strong>Invoice ID:</strong> {booking.id}</p>
-          <p><strong>Boat:</strong> {booking.boat?.name || "N/A"}</p>
-          <p><strong>Trip:</strong> {booking.trip?.name || "N/A"}</p>
-          <p><strong>Adults:</strong> {booking.adults}</p>
-          <p><strong>Children:</strong> {booking.children}</p>
-          <p><strong>Total Price:</strong> LKR {Number(booking.totalPrice).toFixed(2)}</p>
+        {/* Total Price Banner */}
+        <div className="invoice-total-card">
+          <span className="total-label">Total Amount Paid</span>
+          <span className="total-value">LKR {Number(booking.totalPrice).toFixed(2)}</span>
         </div>
 
-        <hr className="divider" />
+        <div className="invoice-card-footer">
+          <p>Thank you for choosing <strong className="highlight">ALOKA Safari</strong> for your water adventure!</p>
+          <span className="footer-contact">For inquiries, present Invoice #{booking.id} to your captain.</span>
+        </div>
 
-        <p className="invoice-footer">
-          Thank you for booking with <span className="highlight">Boat Safari</span>!
-        </p>
-
-        <div className="invoice-actions">
-          <button className="action-btn" onClick={handlePrint}>
-            Print Preview
+        <div className="invoice-actions-bar">
+          <button className="btn-invoice-action print" onClick={handlePrint}>
+            🖨️ Print Invoice Preview
           </button>
 
           <button
-            className="action-btn"
+            className="btn-invoice-action download"
             onClick={handleDownloadBackend}
             disabled={downloading}
           >
-            {downloading ? "Downloading..." : "Download PDF"}
+            {downloading ? "Downloading PDF..." : "📥 Download Official PDF"}
           </button>
         </div>
       </div>
 
       {downloadError && (
-        <p className="error-text">Error: {downloadError}</p>
+        <div className="invoice-error-alert">Error: {downloadError}</div>
       )}
     </div>
   );
 }
 
 export default Invoice;
+

@@ -1,139 +1,236 @@
-/* Container */
+/* ==========================================================================
+   ALOKA Boat Safari - Admin Panel Dashboard Styling
+   ========================================================================== */
+
 .admin-container {
-  max-width: 1200px;
+  min-height: calc(100vh - 80px);
+  background-color: #f8fafc;
+  padding: 40px 24px 80px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-}
-
-.admin-container h1 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #003366;
-}
-
-/* Tabs */
-.admin-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.admin-tabs button {
-  padding: 10px 20px;
-  background-color: #0077b6;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.admin-tabs button:hover {
-  background-color: #005f86;
-}
-
-.admin-tabs button.active {
-  background-color: #023e8a;
-}
-
-/* Tables */
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.admin-table th, .admin-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   text-align: left;
 }
 
-.admin-table th {
-  background-color: #0077b6;
-  color: white;
-}
-
-.admin-table tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-/* Lists */
-section ul {
-  list-style: none;
-  padding: 0;
-}
-
-section ul li {
-  background-color: #f7f7f7;
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: 5px;
+.admin-container h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 24px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
-section ul li button {
-  margin-left: 10px;
-  padding: 5px 10px;
-  border: none;
-  background-color: #0077b6;
-  color: white;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: 0.3s;
+.admin-container h1::before {
+  content: "⚡";
+  font-size: 1.8rem;
 }
 
-section ul li button:hover {
-  background-color: #005f86;
-}
-
-/* Forms */
-.boat-form, .time-form, .place-form {
+/* Tab Navigation Bar */
+.admin-tabs {
   display: flex;
-  flex-wrap: wrap;
   gap: 10px;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 32px;
+  overflow-x: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.admin-tabs button {
+  background: transparent;
+  border: none;
+  padding: 10px 22px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #64748b;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.admin-tabs button:hover {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.06);
+}
+
+.admin-tabs button.active-tab {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+}
+
+/* Sections */
+.admin-container section {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  animation: fadeIn 0.3s ease;
+}
+
+.admin-container section h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
   margin-bottom: 20px;
 }
 
-.boat-form input, .time-form input, .place-form input,
-.boat-form select, .place-form textarea {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  flex: 1;
-  min-width: 150px;
+/* Action Bars */
+.report-action {
+  margin-bottom: 24px;
 }
 
-.boat-form button, .time-form button, .place-form button {
-  padding: 8px 16px;
-  background-color: #0077b6;
-  color: white;
+.generate-report-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
   border: none;
-  border-radius: 5px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px;
   cursor: pointer;
-  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+  transition: all 0.25s ease;
 }
 
-.boat-form button:hover, .time-form button:hover, .place-form button:hover {
-  background-color: #005f86;
+.generate-report-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.45);
 }
 
-/* Section Titles */
-section h2 {
+/* Data Tables */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 32px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 16px;
+  border-bottom: 1.5px solid #e2e8f0;
+  text-align: left;
+}
+
+.admin-table td {
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: #f0f9ff;
+}
+
+.admin-table td button {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: all 0.2s ease;
+}
+
+.admin-table td button:first-child {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.admin-table td button:first-child:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.admin-table td button:last-child {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.admin-table td button:last-child:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Admin Forms */
+.booking-form, .user-form, .trip-form {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.booking-form h3, .user-form h3, .trip-form h3 {
+  width: 100%;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
   margin-bottom: 10px;
-  color: #023e8a;
 }
 
-/* Feedback / Alerts */
-.feedback-card {
-  background-color: #f1f1f1;
-  border-left: 5px solid #0077b6;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 3px;
+.booking-form input, .user-form input, .trip-form input,
+.booking-form select, .user-form select, .trip-form select,
+.trip-form textarea {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.booking-form input:focus, .user-form input:focus, .trip-form input:focus,
+.booking-form select:focus, .user-form select:focus, .trip-form select:focus {
+  outline: none;
+  border-color: #0284c7;
+}
+
+.booking-form button, .user-form button, .trip-form button, section > button {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.booking-form button:hover, .user-form button:hover, .trip-form button:hover, section > button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }

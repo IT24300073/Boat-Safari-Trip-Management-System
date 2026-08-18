@@ -12,8 +12,8 @@ function Booking({ setShowBooking, trip }) {
     adults: 1,
     children: 0,
     boatId: "",
-    tripId: "",
-    paymentMethod: "card", // ✅ Added payment method
+    tripId: trip?.id ? String(trip.id) : "",
+    paymentMethod: "card",
     cardNumber: "",
     expiry: "",
     cvv: "",
@@ -59,7 +59,7 @@ function Booking({ setShowBooking, trip }) {
 
       if (total > boatCapacity) {
         setErrorMessage(
-          `Total passengers (${total}) cannot exceed boat capacity (${boatCapacity})`
+          `Total passengers (${total}) exceed boat capacity (${boatCapacity})`
         );
       } else {
         setErrorMessage("");
@@ -79,14 +79,14 @@ function Booking({ setShowBooking, trip }) {
     }
 
     if (!formData.date || formData.date < today) {
-      return "Date must be today or a future date.";
+      return "Safari date must be today or a future date.";
     }
 
     if (!selectedBoat) {
-      return "Please select a valid boat.";
+      return "Please select a boat for your trip.";
     }
 
-    if (formData.adults < 1) return "At least 1 adult is required.";
+    if (formData.adults < 1) return "At least 1 adult passenger is required.";
     if (formData.children < 0) return "Number of children cannot be negative.";
 
     if (formData.adults + formData.children > boatCapacity) {
@@ -99,10 +99,9 @@ function Booking({ setShowBooking, trip }) {
       !formData.tripId ||
       !trips.some((t) => t.id === Number(formData.tripId))
     ) {
-      return "Please select a valid trip.";
+      return "Please select a valid safari trip option.";
     }
 
-    // ✅ Validate only if Card payment is selected
     if (formData.paymentMethod === "card") {
       if (!/^\d{16}$/.test(formData.cardNumber)) {
         return "Card number must be exactly 16 digits.";
@@ -135,7 +134,7 @@ function Booking({ setShowBooking, trip }) {
     setLoading(true);
 
     const selectedTrip =
-      trips.find((t) => t.id === Number(formData.tripId)) || null;
+      trips.find((t) => t.id === Number(formData.tripId)) || trip;
 
     const bookingData = {
       name: formData.name,
@@ -144,7 +143,7 @@ function Booking({ setShowBooking, trip }) {
       adults: formData.adults,
       children: formData.children,
       totalPrice,
-      paymentMethod: formData.paymentMethod, // ✅ Send payment method
+      paymentMethod: formData.paymentMethod,
       boat: selectedBoat ? { id: selectedBoat.id } : null,
       trip: selectedTrip ? { id: selectedTrip.id } : null,
     };
@@ -159,17 +158,17 @@ function Booking({ setShowBooking, trip }) {
       if (response.ok) {
         const savedBooking = await response.json();
         alert(
-          `✅ Booking successful using ${formData.paymentMethod.toUpperCase()} payment!`
+          `✅ Booking successful! Invoice #${savedBooking.id} generated.`
         );
         setShowBooking(false);
         navigate(`/invoice/${savedBooking.id}`);
       } else {
         const errMsg = await response.text();
-        alert("❌ Error: " + errMsg);
+        alert("❌ Booking Error: " + errMsg);
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("⚠️ Something went wrong!");
+      alert("⚠️ Server connection error!");
     } finally {
       setLoading(false);
     }
@@ -179,160 +178,216 @@ function Booking({ setShowBooking, trip }) {
 
   return (
     <div className="modal-overlay">
-      <div className="booking-container">
-        <button className="close-btn" onClick={() => setShowBooking(false)}>
-          ×
+      <div className="booking-modal-card">
+        <button className="modal-close-btn" onClick={() => setShowBooking(false)}>
+          ✕
         </button>
-        <h2>Booking: {trip.name}</h2>
 
-        <form className="booking-form" onSubmit={handleSubmit}>
-          {/* Boat */}
-          <label>Select Boat:</label>
-          <select
-            name="boatId"
-            value={formData.boatId}
-            onChange={handleChange}
-            required
+        <div className="booking-modal-header">
+          <span className="modal-badge">RESERVATION</span>
+          <h2>Book Trip: {trip.name}</h2>
+        </div>
+
+        <form className="booking-form-grid" onSubmit={handleSubmit}>
+          {/* Section 1: Customer Details */}
+          <div className="form-section">
+            <h3>1. Passenger Details</h3>
+            <div className="form-row dual">
+              <div className="form-field">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your Name"
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="email@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-row dual">
+              <div className="form-field">
+                <label>Safari Date</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Select Boat</label>
+                <select
+                  name="boatId"
+                  value={formData.boatId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Choose Boat --</option>
+                  {boats.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.boatType}) - Cap: {b.capacity} (LKR {b.price})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row dual">
+              <div className="form-field">
+                <label>Adult Passengers</label>
+                <input
+                  type="number"
+                  name="adults"
+                  min="1"
+                  value={formData.adults}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Child Passengers</label>
+                <input
+                  type="number"
+                  name="children"
+                  min="0"
+                  value={formData.children}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="form-error-banner">⚠️ {errorMessage}</div>
+            )}
+          </div>
+
+          {/* Section 2: Summary Card */}
+          <div className="price-summary-banner">
+            <div className="summary-info">
+              <span>Total Reservation Price:</span>
+              <span className="total-amount">LKR {totalPrice.toLocaleString()}</span>
+            </div>
+            <span className="summary-note">Includes boat fee & passenger counts</span>
+          </div>
+
+          {/* Section 3: Payment Method */}
+          <div className="form-section">
+            <h3>2. Select Payment Method</h3>
+            <div className="payment-method-selector">
+              <label className={`payment-tab ${formData.paymentMethod === "card" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={formData.paymentMethod === "card"}
+                  onChange={handleChange}
+                />
+                <span>💳 Credit / Debit Card</span>
+              </label>
+
+              <label className={`payment-tab ${formData.paymentMethod === "cash" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cash"
+                  checked={formData.paymentMethod === "cash"}
+                  onChange={handleChange}
+                />
+                <span>💵 Pay Cash On Arrival</span>
+              </label>
+
+              <label className={`payment-tab ${formData.paymentMethod === "paypal" ? "active" : ""}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="paypal"
+                  checked={formData.paymentMethod === "paypal"}
+                  onChange={handleChange}
+                />
+                <span>🅿️ PayPal</span>
+              </label>
+            </div>
+
+            {formData.paymentMethod === "card" && (
+              <div className="card-fields-box">
+                <div className="form-field">
+                  <label>16-Digit Card Number</label>
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    maxLength="16"
+                    placeholder="1234 5678 9101 1121"
+                    value={formData.cardNumber}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-row dual">
+                  <div className="form-field">
+                    <label>Expiry (MM/YY)</label>
+                    <input
+                      type="text"
+                      name="expiry"
+                      placeholder="MM/YY"
+                      value={formData.expiry}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label>CVV Security Code</label>
+                    <input
+                      type="text"
+                      name="cvv"
+                      maxLength="4"
+                      placeholder="123"
+                      value={formData.cvv}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.paymentMethod === "cash" && (
+              <div className="payment-notice-box">
+                💵 You can present cash payment upon arrival at the safari boarding deck.
+              </div>
+            )}
+
+            {formData.paymentMethod === "paypal" && (
+              <div className="payment-notice-box">
+                🅿️ You will be redirected to complete PayPal authorization after clicking confirm.
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="btn-confirm-booking"
+            disabled={loading || !!errorMessage}
           >
-            <option value="">-- Select Boat --</option>
-            {boats.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.boatType}) - LKR {b.price}
-              </option>
-            ))}
-          </select>
-
-          {/* Adults/Children */}
-          <label>Number of Adults:</label>
-          <input
-            type="number"
-            name="adults"
-            min="1"
-            value={formData.adults}
-            onChange={handleChange}
-            required
-          />
-
-          <label>Number of Children:</label>
-          <input
-            type="number"
-            name="children"
-            min="0"
-            value={formData.children}
-            onChange={handleChange}
-          />
-
-          {errorMessage && <p className="error-msg">{errorMessage}</p>}
-
-          {/* Customer Info */}
-          <label>Name:</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-
-          <label>Date of Safari:</label>
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            required
-          />
-
-          {/* Trip */}
-          <label>Select Trip:</label>
-          <select
-            name="tripId"
-            value={formData.tripId}
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Select Trip --</option>
-            {trips.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} - LKR {t.adultPrice} (Adult) / LKR {t.childPrice || 0}{" "}
-                (Child)
-              </option>
-            ))}
-          </select>
-
-          <p>
-            Total Price: <strong>LKR {totalPrice}</strong>
-          </p>
-
-          {/* ✅ Payment Section */}
-          <h3>Payment Method</h3>
-          <select
-            name="paymentMethod"
-            value={formData.paymentMethod}
-            onChange={handleChange}
-          >
-            <option value="card">💳 Card Payment</option>
-            <option value="cash">💵 Cash</option>
-            <option value="paypal">🅿️ PayPal</option>
-          </select>
-
-          {formData.paymentMethod === "card" && (
-            <>
-              <label>Card Number:</label>
-              <input
-                type="text"
-                name="cardNumber"
-                maxLength="16"
-                value={formData.cardNumber}
-                onChange={handleChange}
-                required
-              />
-
-              <label>Expiry (MM/YY):</label>
-              <input
-                type="text"
-                name="expiry"
-                placeholder="MM/YY"
-                value={formData.expiry}
-                onChange={handleChange}
-                required
-              />
-
-              <label>CVV:</label>
-              <input
-                type="text"
-                name="cvv"
-                maxLength="4"
-                value={formData.cvv}
-                onChange={handleChange}
-                required
-              />
-            </>
-          )}
-
-          {formData.paymentMethod === "cash" && (
-            <p style={{ color: "green" }}>
-              💵 You can pay by cash when you arrive at the safari location.
-            </p>
-          )}
-
-          {formData.paymentMethod === "paypal" && (
-            <p style={{ color: "green" }}>
-              🅿️ You will be redirected to PayPal after booking.
-            </p>
-          )}
-
-          <button type="submit" disabled={loading || !!errorMessage}>
-            {loading ? "Processing..." : `Pay LKR ${totalPrice}`}
+            {loading ? "Processing Reservation..." : `Confirm & Pay LKR ${totalPrice.toLocaleString()}`}
           </button>
         </form>
       </div>
@@ -341,3 +396,4 @@ function Booking({ setShowBooking, trip }) {
 }
 
 export default Booking;
+

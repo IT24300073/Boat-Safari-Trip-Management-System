@@ -1,108 +1,200 @@
-.book-trip-container {
+/* ==========================================================================
+   ALOKA Boat Safari - Trip Selection Page Styling
+   ========================================================================== */
+
+.book-trip-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding-bottom: 80px;
+}
+
+.trip-banner-section {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0f172a 100%);
+  color: #ffffff;
+  padding: 60px 24px 50px;
+  text-align: center;
+}
+
+.trip-banner-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.banner-subtitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #38bdf8;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.trip-banner-content h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.trip-banner-content p {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.trip-content-container {
   max-width: 1200px;
-  margin: auto;
-  padding: 30px 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: -30px auto 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
 }
 
-.title {
+.loading-state, .empty-trips-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 60px 24px;
   text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 40px;
-  color: #023e8a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+  margin: 40px auto;
 }
 
-.loading, .no-trips {
-  text-align: center;
-  font-size: 1.2rem;
-  color: #555;
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
 }
 
-.trip-grid {
+.trip-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
 }
 
-.trip-card {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+.modern-trip-card {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
   overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.trip-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+.modern-trip-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 35px rgba(2, 132, 199, 0.15);
+  border-color: rgba(2, 132, 199, 0.3);
 }
 
-.trip-header {
-  background-color: #0077b6;
-  color: #fff;
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.trip-card-top {
+  background: linear-gradient(135deg, #0284c7, #06b6d4);
+  color: #ffffff;
+  padding: 24px 20px 20px;
+  position: relative;
 }
 
-.trip-header h2 {
+.trip-type-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.trip-title {
+  font-size: 1.35rem;
+  font-weight: 800;
   margin: 0;
-  font-size: 1.5rem;
 }
 
-.trip-type {
-  background-color: #90e0ef;
-  color: #023e8a;
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 0.85rem;
-}
-
-.trip-details {
+.trip-card-body {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
 }
 
-.trip-details p {
-  margin: 8px 0;
+.trip-description {
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 18px;
+  flex-grow: 1;
 }
 
-.description {
-  font-size: 0.9rem;
-  color: #555;
-  margin-top: 10px;
-}
-
-.book-btn {
-  background-color: #0077b6;
-  color: #fff;
-  border: none;
-  padding: 12px 0;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.book-btn:hover {
-  background-color: #023e8a;
-  color: #fff;
-}
-
-/* Modal overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
+.trip-info-pills {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.info-pill {
+  display: flex;
   align-items: center;
-  z-index: 1000;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.trip-price-box {
+  display: flex;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 14px;
+}
+
+.price-tag {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.price-tag.child .price-value {
+  color: #059669;
+}
+
+.trip-card-footer {
+  padding: 16px 20px 20px;
+}
+
+.btn-select-trip {
+  width: 100%;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: none;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25);
+  transition: all 0.25s ease;
+}
+
+.btn-select-trip:hover {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.4);
 }

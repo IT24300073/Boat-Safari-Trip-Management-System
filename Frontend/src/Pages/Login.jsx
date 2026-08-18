@@ -7,8 +7,9 @@ function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 🔹 Redirect if already logged in
+  // Redirect if already logged in
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (isLoggedIn) {
@@ -19,8 +20,8 @@ function Login({ setIsLoggedIn }) {
         navigate("/");
       }
     }
-  }, []); // ✅ Remove "navigate" from dependency
-  
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -29,13 +30,15 @@ function Login({ setIsLoggedIn }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    // 🔹 Hardcoded admin login
+    // Hardcoded admin login fallback
     if (formData.email === "admin@gmail.com" && formData.password === "admin") {
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("user", JSON.stringify({ email: "admin", role: "ADMIN" }));
       setIsLoggedIn(true);
-      navigate("/admin"); // ✅ Go directly to Admin.jsx
+      setLoading(false);
+      navigate("/admin");
       return;
     }
 
@@ -54,55 +57,89 @@ function Login({ setIsLoggedIn }) {
         if (response.data.role === "ADMIN") {
           navigate("/admin");
         } else {
-          navigate("/"); // ✅ Normal users go here
+          navigate("/");
         }
       } else if (response.status === 401) {
-        setError("Invalid email or password.");
+        setError("Invalid email or password. Please check your credentials.");
       } else {
-        setError("Login failed. Please try again.");
+        setError("Login failed. Please verify connection and try again.");
       }
     } catch (err) {
       console.error(err);
-      setError("Login failed. Please try again.");
+      setError("Unable to connect to server. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>Login to Boat Safari</h2>
-        {error && <p className="error">{error}</p>}
-        <form onSubmit={handleSubmit}>
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            required
-          />
-          <label>Password:</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-            required
-          />
-          <button type="submit">Login</button>
+    <div className="auth-page-container">
+      <div className="auth-card-wrapper">
+        <div className="auth-card-header">
+          <div className="auth-brand-badge">🚤 ALOKA SAFARI</div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to your account to manage bookings & explore safaris</p>
+        </div>
+
+        {error && (
+          <div className="auth-error-alert">
+            <span className="error-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <div className="input-with-icon">
+              <span className="input-icon">📧</span>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-with-icon">
+              <span className="input-icon">🔒</span>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="btn-auth-submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In to Account"}
+          </button>
         </form>
-        <p className="register-text">Don’t have an account?</p>
-        <button
-          className="register-btn"
-          onClick={() => navigate("/register")}
-        >
-          Register Here
-        </button>
+
+        <div className="auth-card-footer">
+          <p>Don’t have an account yet?</p>
+          <button
+            type="button"
+            className="btn-auth-secondary"
+            onClick={() => navigate("/register")}
+          >
+            Create New Account
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 export default Login;
+
