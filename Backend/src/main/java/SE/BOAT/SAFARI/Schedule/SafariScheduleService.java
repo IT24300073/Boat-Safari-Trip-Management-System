@@ -69,10 +69,6 @@ public class SafariScheduleService {
         return safariScheduleRepository.save(schedule);
     }
 
-    public List<SafariSchedule> getAllSchedules() {
-        return safariScheduleRepository.findAll();
-    }
-
     @Autowired
     private SE.BOAT.SAFARI.Notification.NotificationService notificationService;
 

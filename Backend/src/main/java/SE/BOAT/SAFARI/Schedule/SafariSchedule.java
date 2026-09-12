@@ -35,6 +35,8 @@ public class SafariSchedule {
 
     private String cancelReason; // e.g. Adverse Weather, Maintenance, Water Level
 
+    private String remarks;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Transient
