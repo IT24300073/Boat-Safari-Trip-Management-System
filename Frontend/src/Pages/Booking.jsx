@@ -1,9 +1,11 @@
 import "../Styles/Booking.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Booking({ setShowBooking, trip }) {
   const navigate = useNavigate();
+  const { user, isLoggedIn } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -24,10 +26,29 @@ function Booking({ setShowBooking, trip }) {
   const [trips, setTrips] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Auto-fill logged in user details
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [isLoggedIn, user]);
+
   useEffect(() => {
     fetch("http://localhost:8080/api/boats")
       .then((res) => res.json())
-      .then((data) => setBoats(data))
+      .then((data) => {
+        const availableBoats = (data || []).filter(
+          (b) => b.status !== "MAINTENANCE" && b.status !== "UNAVAILABLE"
+        );
+        setBoats(availableBoats);
+        if (availableBoats.length > 0 && !formData.boatId) {
+          setFormData((prev) => ({ ...prev, boatId: String(availableBoats[0].id) }));
+        }
+      })
       .catch((err) => console.error("Error fetching boats:", err));
 
     fetch("http://localhost:8080/api/trips")
@@ -163,11 +184,14 @@ function Booking({ setShowBooking, trip }) {
         setShowBooking(false);
         navigate(`/invoice/${savedBooking.id}`);
       } else {
-        const errMsg = await response.text();
-        alert("❌ Booking Error: " + errMsg);
+        const data = await response.json().catch(() => null);
+        const msg = data?.message || "Booking failed. Please try a different boat or date.";
+        setErrorMessage("⚠️ Assignment Conflict: " + msg);
+        alert("⚠️ Assignment Conflict: " + msg);
       }
     } catch (error) {
       console.error("Error:", error);
+      setErrorMessage("⚠️ Server connection error!");
       alert("⚠️ Server connection error!");
     } finally {
       setLoading(false);
@@ -280,11 +304,29 @@ function Booking({ setShowBooking, trip }) {
 
           {/* Section 2: Summary Card */}
           <div className="price-summary-banner">
-            <div className="summary-info">
-              <span>Total Reservation Price:</span>
-              <span className="total-amount">LKR {totalPrice.toLocaleString()}</span>
+            <div className="summary-breakdown-grid">
+              <div className="summary-row">
+                <span>Adult Seats ({formData.adults}x):</span>
+                <span>LKR {(formData.adults * (trip?.adultPrice || 0)).toLocaleString()}</span>
+              </div>
+              {formData.children > 0 && (
+                <div className="summary-row">
+                  <span>Child Seats ({formData.children}x):</span>
+                  <span>LKR {(formData.children * (trip?.childPrice || 0)).toLocaleString()}</span>
+                </div>
+              )}
+              {selectedBoat && selectedBoat.price > 0 && (
+                <div className="summary-row">
+                  <span>Boat Fee ({selectedBoat.name}):</span>
+                  <span>LKR {selectedBoat.price.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="summary-row total">
+                <span>Total Reservation Price:</span>
+                <span className="total-amount">LKR {totalPrice.toLocaleString()}</span>
+              </div>
             </div>
-            <span className="summary-note">Includes boat fee & passenger counts</span>
+            <span className="summary-note">Instant Online Confirmation & Invoice Issued Upon Reservation</span>
           </div>
 
           {/* Section 3: Payment Method */}

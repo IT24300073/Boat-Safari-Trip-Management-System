@@ -13,7 +13,43 @@ public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
 
+    @Autowired
+    private SE.BOAT.SAFARI.BoatManagement.BoatRepository boatRepository;
+
+    public void validateAssignmentConflict(Booking booking, Integer excludeBookingId) {
+        if (booking.getBoat() == null) {
+            return;
+        }
+
+        int boatId = booking.getBoat().getId();
+
+        // 1. Verify Boat maintenance status
+        SE.BOAT.SAFARI.BoatManagement.Boat boat = boatRepository.findById(boatId).orElse(booking.getBoat());
+        if (boat != null && ("MAINTENANCE".equalsIgnoreCase(boat.getStatus()) || "UNAVAILABLE".equalsIgnoreCase(boat.getStatus()))) {
+            throw new IllegalStateException("Selected boat '" + boat.getName() + "' is currently under maintenance / unavailable for trip assignment.");
+        }
+
+        // 2. Prevent double assignment on the same safari date
+        if (booking.getSafariDate() != null) {
+            List<Booking> existingOnDate = bookingRepository.findByBoatIdAndSafariDate(boatId, booking.getSafariDate());
+            for (Booking existing : existingOnDate) {
+                if (excludeBookingId == null || existing.getId() != excludeBookingId) {
+                    throw new IllegalStateException("Assignment Conflict: Boat '" + (boat != null ? boat.getName() : "ID " + boatId) + "' is already assigned to Booking #" + existing.getId() + " on " + booking.getSafariDate() + ". Double assignment blocked.");
+                }
+            }
+        }
+    }
+
     public Booking saveBooking(Booking booking) {
+        validateAssignmentConflict(booking, null);
+
+        if (booking.getTransactionReference() == null || booking.getTransactionReference().trim().isEmpty()) {
+            booking.setTransactionReference("TXN-" + System.currentTimeMillis());
+        }
+        if (booking.getPaymentStatus() == null || booking.getPaymentStatus().trim().isEmpty()) {
+            booking.setPaymentStatus("PAID_CONFIRMED");
+        }
+
         return bookingRepository.save(booking);
     }
 
@@ -42,6 +78,7 @@ public class BookingService {
     }
 
     public Booking updateBooking(int id, Booking booking) {
+        validateAssignmentConflict(booking, id);
         return bookingRepository.findById(id)
                 .map(existing -> {
                     existing.setName(booking.getName());

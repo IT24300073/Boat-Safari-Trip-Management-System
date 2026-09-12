@@ -101,13 +101,24 @@ function Invoice() {
 
         <div className="invoice-divider"></div>
 
+        {/* Instant Confirmation Banner */}
+        <div className="instant-confirmation-banner">
+          <span className="confirmation-icon">🎉</span>
+          <div>
+            <strong>Instant Online Confirmation & Seat Guaranteed</strong>
+            <p>Your payment has been processed securely and your boat safari seats are reserved.</p>
+          </div>
+        </div>
+
         {/* Customer & Trip Details Grid */}
         <div className="invoice-details-grid">
           <div className="details-box">
-            <h3>👤 Customer Information</h3>
+            <h3>👤 Customer & Payment Info</h3>
             <p><strong>Passenger Name:</strong> {booking.name}</p>
             <p><strong>Email Address:</strong> {booking.email}</p>
-            <p><strong>Payment Status:</strong> <span className="status-paid">✓ Confirmed</span></p>
+            <p><strong>Transaction Ref:</strong> <span className="txn-ref-badge">{booking.transactionReference || `TXN-${booking.id}84920`}</span></p>
+            <p><strong>Payment Method:</strong> {booking.paymentMethod ? booking.paymentMethod.toUpperCase() : "CREDIT/DEBIT CARD"}</p>
+            <p><strong>Payment Status:</strong> <span className="status-paid">✓ Paid & Confirmed (Instant)</span></p>
           </div>
 
           <div className="details-box">
@@ -116,6 +127,7 @@ function Invoice() {
             <p><strong>Trip Experience:</strong> {booking.trip?.name || "Custom Safari"}</p>
             <p><strong>Adult Passengers:</strong> {booking.adults}</p>
             <p><strong>Child Passengers:</strong> {booking.children}</p>
+            <p><strong>Safari Date:</strong> {booking.safariDate}</p>
           </div>
         </div>
 

@@ -65,6 +65,17 @@ public class Boat {
     @Column(nullable = false)
     private double price;
 
+    @Column(nullable = false)
+    private String status = "AVAILABLE"; // "AVAILABLE", "MAINTENANCE", "UNAVAILABLE"
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
 
     // e.g., Luxury, Standard, Fishing, Speed
 }

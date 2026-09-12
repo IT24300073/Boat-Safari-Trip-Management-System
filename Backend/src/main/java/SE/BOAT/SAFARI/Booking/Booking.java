@@ -50,4 +50,19 @@ public class Booking {
 
     @Column(nullable = false)
     private double totalPrice;
+
+    private String paymentMethod = "CARD"; // "CARD", "PAYPAL", "CASH"
+
+    private String paymentStatus = "PAID_CONFIRMED"; // "PAID_CONFIRMED", "PENDING_CASH"
+
+    private String transactionReference; // e.g. "TXN-847291039"
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getTransactionReference() { return transactionReference; }
+    public void setTransactionReference(String transactionReference) { this.transactionReference = transactionReference; }
 }

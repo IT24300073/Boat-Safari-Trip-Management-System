@@ -1,19 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 import "./Navbar.css";
 
-function Navbar({ isLoggedIn }) {
+function Navbar() {
   const location = useLocation();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      setUser(null);
-    }
-  }, [isLoggedIn, location]);
+  const { isLoggedIn, user } = useAuth();
 
   if (location.pathname.startsWith("/admin")) {
     return null;
@@ -39,6 +31,16 @@ function Navbar({ isLoggedIn }) {
           <Link to="/feedback" className={`nav-link ${isActive("/feedback") ? "active" : ""}`}>
             Feedback
           </Link>
+          {isLoggedIn && (
+            <>
+              <Link to="/maintenance" className={`nav-link ${isActive("/maintenance") ? "active" : ""}`}>
+                🛠️ Maintenance
+              </Link>
+              <Link to="/schedule" className={`nav-link ${isActive("/schedule") ? "active" : ""}`}>
+                🧭 Schedule
+              </Link>
+            </>
+          )}
 
           {!isLoggedIn ? (
             <Link to="/login" className="btn-nav-login">
@@ -51,6 +53,7 @@ function Navbar({ isLoggedIn }) {
                   ⚡ Admin Panel
                 </Link>
               )}
+              <NotificationBell />
               <Link to="/usermanagement" className="user-profile-link" title="My Account">
                 <span className="user-avatar-small">
                   {user?.name ? user.name.charAt(0).toUpperCase() : "U"}

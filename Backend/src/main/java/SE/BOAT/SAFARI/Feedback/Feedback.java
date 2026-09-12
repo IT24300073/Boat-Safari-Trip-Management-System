@@ -22,4 +22,13 @@ public class Feedback {
 
     @Column(nullable = false)
     private int rating; // rating (1-5 stars)
+
+    @Column(nullable = false)
+    private boolean flagged = false; // automatically flagged if rating <= 3
+
+    @Column(nullable = true)
+    private String flagReason; // e.g. "Low Rating Alert (<= 3 Stars)"
+
+    @Column(nullable = false)
+    private boolean reviewed = false; // whether admin has reviewed/resolved the alert
 }

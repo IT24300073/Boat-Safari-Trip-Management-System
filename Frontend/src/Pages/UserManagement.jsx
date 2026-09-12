@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import "../Styles/UserManagement.css";
 
 function UserManagement() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const { user, logout } = useAuth();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
 
@@ -69,6 +69,11 @@ function UserManagement() {
               <div className="info-item">
                 <span className="info-label">Email Address</span>
                 <span className="info-value">{user?.email || "N/A"}</span>
+              </div>
+
+              <div className="info-item">
+                <span className="info-label">Phone Number</span>
+                <span className="info-value">{user?.phone || "N/A"}</span>
               </div>
 
               <div className="info-item">

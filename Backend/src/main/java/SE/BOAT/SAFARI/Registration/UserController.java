@@ -25,11 +25,29 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody User loginUser) {
-        User user = userService.login(loginUser);
-        return user != null
-                ? ResponseEntity.ok(user)
-                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<?> login(@RequestBody User loginUser) {
+        UserService.LoginResult result = userService.processLogin(loginUser);
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+                return ResponseEntity.ok(result.getUser());
+            case ACCOUNT_LOCKED:
+                return ResponseEntity.status(HttpStatus.LOCKED)
+                        .body(Map.of("message", result.getMessage(), "accountLocked", true));
+            case INVALID_CREDENTIALS:
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", result.getMessage(), "remainingAttempts", result.getRemainingAttempts()));
+            case USER_NOT_FOUND:
+            default:
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Invalid credentials. Please check your details and try again."));
+        }
+    }
+
+    @PutMapping("/{id}/unlock")
+    public ResponseEntity<Void> unlockUser(@PathVariable Integer id) {
+        boolean unlocked = userService.unlockUser(id);
+        return unlocked ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
     @GetMapping

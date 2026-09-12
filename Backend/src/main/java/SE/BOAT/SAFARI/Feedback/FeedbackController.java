@@ -19,18 +19,25 @@ public class FeedbackController {
         return feedbackService.saveFeedback(feedback);
     }
 
-    // Get all feedbacks (with filters)
+    // Get all feedbacks (with filters including flagged)
     @GetMapping
     public List<Feedback> getFeedbacks(@RequestParam(required = false) String name,
                                        @RequestParam(required = false) String email,
-                                       @RequestParam(required = false) Integer rating) {
-        return feedbackService.getFeedbacks(name, email, rating);
+                                       @RequestParam(required = false) Integer rating,
+                                       @RequestParam(required = false) Boolean flagged) {
+        return feedbackService.getFeedbacks(name, email, rating, flagged);
     }
 
     // Get single feedback
     @GetMapping("/{id}")
     public Feedback getFeedbackById(@PathVariable int id) {
         return feedbackService.getFeedbackById(id);
+    }
+
+    // Mark feedback alert as reviewed
+    @PutMapping("/{id}/review")
+    public Feedback markAsReviewed(@PathVariable int id) {
+        return feedbackService.markAsReviewed(id);
     }
 
     // Update feedback

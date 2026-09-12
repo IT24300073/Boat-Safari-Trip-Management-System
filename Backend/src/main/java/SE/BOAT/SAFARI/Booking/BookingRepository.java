@@ -15,4 +15,6 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>,
     @Override
     @EntityGraph(attributePaths = {"boat", "trip"})
     List<Booking> findAll();
+
+    List<Booking> findByBoatIdAndSafariDate(int boatId, java.time.LocalDate safariDate);
 }

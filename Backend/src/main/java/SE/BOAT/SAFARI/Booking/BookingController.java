@@ -6,6 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/bookings")
 @CrossOrigin(origins = "*")
@@ -15,8 +19,14 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping
-    public Booking saveBooking(@RequestBody Booking booking) {
-        return bookingService.saveBooking(booking);
+    public ResponseEntity<?> saveBooking(@RequestBody Booking booking) {
+        try {
+            Booking saved = bookingService.saveBooking(booking);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", ex.getMessage(), "conflict", true));
+        }
     }
 
     @GetMapping
@@ -30,8 +40,14 @@ public class BookingController {
     }
 
     @PutMapping("/{id}")
-    public Booking updateBooking(@PathVariable int id, @RequestBody Booking booking) {
-        return bookingService.updateBooking(id, booking);
+    public ResponseEntity<?> updateBooking(@PathVariable int id, @RequestBody Booking booking) {
+        try {
+            Booking updated = bookingService.updateBooking(id, booking);
+            return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", ex.getMessage(), "conflict", true));
+        }
     }
 
     @DeleteMapping("/{id}")

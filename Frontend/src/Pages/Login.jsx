@@ -1,26 +1,26 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import "../Styles/Login.css";
 
-function Login({ setIsLoggedIn }) {
+function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const { login, isLoggedIn, user } = useAuth();
+  const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (isLoggedIn) {
-      const user = JSON.parse(localStorage.getItem("user"));
       if (user?.role === "ADMIN") {
         navigate("/admin");
       } else {
         navigate("/");
       }
     }
-  }, []);
+  }, [isLoggedIn, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,11 +32,11 @@ function Login({ setIsLoggedIn }) {
     setError("");
     setLoading(true);
 
+    const inputVal = formData.identifier.trim();
+
     // Hardcoded admin login fallback
-    if (formData.email === "admin@gmail.com" && formData.password === "admin") {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("user", JSON.stringify({ email: "admin", role: "ADMIN" }));
-      setIsLoggedIn(true);
+    if (inputVal === "admin@gmail.com" && formData.password === "admin") {
+      login({ email: "admin@gmail.com", name: "System Admin", role: "ADMIN" });
       setLoading(false);
       navigate("/admin");
       return;
@@ -45,22 +45,32 @@ function Login({ setIsLoggedIn }) {
     try {
       const response = await axios.post(
         "http://localhost:8080/api/users/login",
-        formData,
+        {
+          email: inputVal,
+          phone: inputVal,
+          password: formData.password,
+        },
         { validateStatus: () => true }
       );
 
       if (response.status === 200 && response.data) {
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify(response.data));
-        setIsLoggedIn(true);
+        login(response.data);
 
         if (response.data.role === "ADMIN") {
           navigate("/admin");
         } else {
           navigate("/");
         }
+      } else if (response.status === 423) {
+        setError(
+          response.data?.message ||
+            "🔒 Account Locked: Your account has been locked after 5 failed login attempts. Please contact administrator."
+        );
       } else if (response.status === 401) {
-        setError("Invalid email or password. Please check your credentials.");
+        setError(
+          response.data?.message ||
+            "Invalid email/phone or password. Please check your credentials."
+        );
       } else {
         setError("Login failed. Please verify connection and try again.");
       }
@@ -90,16 +100,16 @@ function Login({ setIsLoggedIn }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="identifier">Email Address or Phone Number</label>
             <div className="input-with-icon">
-              <span className="input-icon">📧</span>
+              <span className="input-icon">👤</span>
               <input
-                id="email"
-                type="email"
-                name="email"
-                value={formData.email}
+                id="identifier"
+                type="text"
+                name="identifier"
+                value={formData.identifier}
                 onChange={handleChange}
-                placeholder="name@example.com"
+                placeholder="name@example.com or +94771234567"
                 required
               />
             </div>

@@ -1,24 +1,34 @@
 /* ==========================================================================
-   ALOKA Boat Safari - Feedback Form Styling
+   ALOKA Boat Safari - Feedback & Reviews Styling (Dark Slate & Safety Amber)
    ========================================================================== */
 
-.feedback-page-container {
+.feedback-page-outer {
   min-height: calc(100vh - 80px);
-  background-color: #f8fafc;
-  padding: 60px 24px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 50px 24px 80px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  font-family: var(--font-sans);
+}
+
+.feedback-page-container {
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .feedback-card-wrapper {
-  background: #ffffff;
-  border-radius: 24px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
   padding: 40px 36px;
   width: 100%;
-  max-width: 580px;
+  max-width: 600px;
   text-align: left;
 }
 
@@ -29,47 +39,51 @@
 
 .feedback-badge {
   display: inline-block;
-  background: rgba(2, 132, 199, 0.1);
-  color: #0284c7;
+  background: var(--amber-bg);
+  color: var(--amber-light);
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.05em;
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   margin-bottom: 10px;
 }
 
 .feedback-header h2 {
-  font-size: 1.7rem;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 8px;
+  letter-spacing: -0.02em;
 }
 
 .feedback-header p {
   font-size: 0.92rem;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .alert-box {
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 20px;
 }
 
 .alert-box.success {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
+  background: var(--emerald-bg);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--emerald);
 }
 
 .alert-box.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--rose-bg);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: var(--rose);
 }
 
 .feedback-form-layout {
@@ -87,7 +101,7 @@
 .feedback-form-layout label {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .feedback-form-layout input,
@@ -95,51 +109,197 @@
 .feedback-form-layout textarea {
   width: 100%;
   padding: 12px 14px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
   font-size: 0.95rem;
-  color: #0f172a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--bg-input);
   box-sizing: border-box;
-  font-family: inherit;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .feedback-form-layout input:focus,
 .feedback-form-layout select:focus,
 .feedback-form-layout textarea:focus {
   outline: none;
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  border-color: var(--amber-primary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+/* Star Rating Picker Widget */
+.star-rating-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  transition: transform 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.star-btn.active,
+.star-btn:hover {
+  color: var(--amber-primary);
+  transform: scale(1.2);
+}
+
+.rating-label-text {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--amber-light);
 }
 
 .char-count {
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-align: right;
   margin-top: 4px;
 }
 
 .btn-submit-feedback {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
   border: none;
   padding: 14px;
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-weight: 800;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
-  transition: all 0.25s ease;
+  box-shadow: var(--shadow-amber);
+  transition: var(--transition-normal);
   margin-top: 8px;
 }
 
 .btn-submit-feedback:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 12px 25px rgba(2, 132, 199, 0.45);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
 }
 
 .btn-submit-feedback:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+/* Community Guest Reviews Section */
+.community-reviews-container {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.community-reviews-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.community-reviews-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.community-reviews-header p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.no-reviews-text {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 24px;
+}
+
+.review-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.review-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+.review-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-avatar-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.review-user-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.review-verified-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--emerald);
+}
+
+.review-stars-display {
+  margin-left: auto;
+  color: var(--amber-primary);
+  font-size: 1rem;
+  letter-spacing: 2px;
+}
+
+.review-body-text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
 }

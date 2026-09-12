@@ -1,22 +1,24 @@
 /* ==========================================================================
-   ALOKA Boat Safari - Invoice Printable Styling
+   ALOKA Boat Safari - Invoice Printable Styling (Dark Slate & Safety Amber)
    ========================================================================== */
 
 .invoice-page-wrapper {
   min-height: calc(100vh - 80px);
-  background-color: #f8fafc;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   padding: 50px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  font-family: var(--font-sans);
 }
 
 .invoice-card-container {
   position: relative;
-  background: #ffffff;
-  border-radius: 24px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 680px;
   padding: 40px;
@@ -27,17 +29,24 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  background: #f1f5f9;
-  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   width: 36px;
   height: 36px;
   border-radius: 50%;
   font-size: 1rem;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.close-invoice-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--amber-primary);
+  border-color: var(--amber-primary);
 }
 
 .invoice-card-header {
@@ -59,15 +68,16 @@
 }
 
 .invoice-brand h2 {
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .brand-tagline {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -79,23 +89,65 @@
 }
 
 .invoice-id-tag {
-  background: rgba(2, 132, 199, 0.1);
-  color: #0284c7;
+  background: var(--amber-bg);
+  color: var(--amber-light);
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   font-weight: 800;
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .invoice-date-tag {
+  font-family: var(--font-mono);
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .invoice-divider {
   height: 1px;
-  background: #e2e8f0;
+  background: var(--border-subtle);
   margin: 24px 0;
+}
+
+.instant-confirmation-banner {
+  background: var(--emerald-bg);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.confirmation-icon {
+  font-size: 1.8rem;
+}
+
+.instant-confirmation-banner strong {
+  color: var(--emerald);
+  font-size: 0.95rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.instant-confirmation-banner p {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.txn-ref-badge {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--bg-secondary);
+  color: var(--amber-primary);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
 
 .invoice-details-grid {
@@ -106,39 +158,43 @@
 }
 
 .details-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 20px;
 }
 
 .details-box h3 {
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .details-box p {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .status-paid {
-  color: #16a34a;
+  font-family: var(--font-mono);
+  color: var(--emerald);
   font-weight: 700;
-  background: rgba(22, 163, 74, 0.1);
+  background: var(--emerald-bg);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 0.82rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .invoice-total-card {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  color: #ffffff;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
   padding: 20px;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -146,32 +202,35 @@
 }
 
 .total-label {
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
 }
 
 .total-value {
+  font-family: var(--font-mono);
   font-size: 1.6rem;
   font-weight: 800;
-  color: #a5f3fc;
+  color: var(--amber-primary);
 }
 
 .invoice-card-footer {
   text-align: center;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-subtle);
   padding-top: 20px;
   margin-bottom: 24px;
 }
 
 .invoice-card-footer p {
   font-size: 0.95rem;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .footer-contact {
+  font-family: var(--font-mono);
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .invoice-actions-bar {
@@ -182,33 +241,35 @@
 
 .btn-invoice-action {
   padding: 12px 24px;
-  border-radius: 30px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   border: none;
-  transition: all 0.25s ease;
+  transition: var(--transition-fast);
 }
 
 .btn-invoice-action.print {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .btn-invoice-action.print:hover {
-  background: #e2e8f0;
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
 }
 
 .btn-invoice-action.download {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  color: #ffffff;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
+  box-shadow: var(--shadow-amber);
 }
 
 .btn-invoice-action.download:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.45);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.45);
 }
 
 .invoice-loading-screen {
@@ -218,6 +279,6 @@
 
 .invoice-error-alert {
   margin-top: 16px;
-  color: #dc2626;
+  color: var(--rose);
   font-weight: 600;
 }

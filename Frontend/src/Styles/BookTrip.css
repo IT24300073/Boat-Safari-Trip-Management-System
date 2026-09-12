@@ -1,18 +1,25 @@
 /* ==========================================================================
-   ALOKA Boat Safari - Trip Selection Page Styling
+   ALOKA Boat Safari - Trip Selection & Search Styling (Dark Slate & Safety Amber)
    ========================================================================== */
 
 .book-trip-page {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   padding-bottom: 80px;
+  font-family: var(--font-sans);
 }
 
 .trip-banner-section {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0f172a 100%);
-  color: #ffffff;
-  padding: 60px 24px 50px;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 50%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 60px 24px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
 }
 
 .trip-banner-content {
@@ -21,40 +28,182 @@
 }
 
 .banner-subtitle {
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 1.5px;
-  color: #38bdf8;
+  letter-spacing: 0.08em;
+  color: var(--amber-primary);
   text-transform: uppercase;
   display: block;
   margin-bottom: 8px;
 }
 
 .trip-banner-content h1 {
+  font-family: var(--font-display);
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
   margin-bottom: 12px;
+  letter-spacing: -0.02em;
 }
 
 .trip-banner-content p {
   font-size: 1.05rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-secondary);
+}
+
+/* Date & Time Slot Search Widget */
+.schedule-search-bar-widget {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 20px;
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
+}
+
+.search-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 220px;
+  text-align: left;
+}
+
+.search-field-group label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.search-date-input,
+.search-select-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  box-sizing: border-box;
+  transition: var(--transition-fast);
+}
+
+.search-date-input:focus,
+.search-select-input:focus {
+  outline: none;
+  border-color: var(--amber-primary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.search-actions-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-execute-search {
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
+  border: none;
+  padding: 13px 24px;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: var(--shadow-amber);
+  transition: var(--transition-normal);
+  white-space: nowrap;
+}
+
+.btn-execute-search:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
+}
+
+.btn-reset-search {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 13px 18px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-reset-search:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
 }
 
 .trip-content-container {
   max-width: 1200px;
-  margin: -30px auto 0;
+  margin: 40px auto 0;
   padding: 0 24px;
   position: relative;
   z-index: 2;
 }
 
+.search-results-section,
+.all-packages-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.search-results-header,
+.packages-header {
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.search-results-header h2,
+.packages-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.results-count {
+  font-family: var(--font-mono);
+  color: var(--amber-primary);
+  font-size: 1.3rem;
+}
+
+.active-filter-tag {
+  display: inline-block;
+  background: var(--amber-bg);
+  color: var(--amber-light);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  margin-right: 8px;
+  margin-top: 6px;
+}
+
 .loading-state, .empty-trips-card {
-  background: #ffffff;
-  border-radius: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
   padding: 60px 24px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   max-width: 500px;
   margin: 40px auto;
 }
@@ -71,43 +220,74 @@
 }
 
 .modern-trip-card {
-  background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: var(--transition-normal);
 }
 
 .modern-trip-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 35px rgba(2, 132, 199, 0.15);
-  border-color: rgba(2, 132, 199, 0.3);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-medium);
+}
+
+.slot-card .trip-card-top {
+  background: var(--bg-card-alt);
+}
+
+.slot-date-badge {
+  display: inline-block;
+  background: var(--sky-bg);
+  color: var(--sky);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  margin-bottom: 10px;
+}
+
+.status-confirmed {
+  color: var(--emerald);
+  font-weight: 800;
+}
+
+.slot-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .trip-card-top {
-  background: linear-gradient(135deg, #0284c7, #06b6d4);
-  color: #ffffff;
+  background: var(--bg-card-alt);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
   padding: 24px 20px 20px;
   position: relative;
 }
 
 .trip-type-badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
-  color: #ffffff;
+  background: var(--amber-bg);
+  color: var(--amber-light);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   text-transform: uppercase;
   margin-bottom: 10px;
 }
 
 .trip-title {
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 800;
   margin: 0;
@@ -121,7 +301,7 @@
 }
 
 .trip-description {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.92rem;
   line-height: 1.5;
   margin-bottom: 18px;
@@ -139,20 +319,21 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #f1f5f9;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   padding: 6px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 0.82rem;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .trip-price-box {
   display: flex;
   gap: 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
 }
 
 .price-tag {
@@ -162,18 +343,19 @@
 
 .price-label {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .price-value {
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   font-weight: 800;
-  color: #0284c7;
+  color: var(--amber-primary);
 }
 
 .price-tag.child .price-value {
-  color: #059669;
+  color: var(--emerald);
 }
 
 .trip-card-footer {
@@ -182,19 +364,72 @@
 
 .btn-select-trip {
   width: 100%;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
   border: none;
   padding: 12px 20px;
+  font-family: var(--font-sans);
   font-weight: 700;
   font-size: 0.95rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25);
-  transition: all 0.25s ease;
+  box-shadow: var(--shadow-amber);
+  transition: var(--transition-normal);
 }
 
 .btn-select-trip:hover {
-  background: linear-gradient(135deg, #0369a1, #075985);
-  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
+}
+
+.btn-select-trip.disabled {
+  background: var(--bg-secondary) !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+.seat-availability-pill {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  width: 100%;
+}
+
+.seat-badge {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+}
+
+.seat-badge.available {
+  background: var(--emerald-bg);
+  color: var(--emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.seat-badge.limited {
+  background: var(--amber-bg);
+  color: var(--amber-light);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.seat-badge.full {
+  background: var(--rose-bg);
+  color: var(--rose);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.seat-badge.maintenance {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }

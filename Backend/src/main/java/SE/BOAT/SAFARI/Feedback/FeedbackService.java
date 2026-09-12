@@ -13,13 +13,21 @@ public class FeedbackService {
     @Autowired
     private FeedbackRepository feedbackRepository;
 
-    // Save feedback
+    // Save feedback with automatic low-rating threshold check
     public Feedback saveFeedback(Feedback feedback) {
+        // Agreed rating threshold rule: Auto-flag any feedback with rating <= 3 stars
+        if (feedback.getRating() <= 3) {
+            feedback.setFlagged(true);
+            feedback.setFlagReason("Low Rating Alert (" + feedback.getRating() + "/5 Stars)");
+        } else {
+            feedback.setFlagged(false);
+            feedback.setFlagReason(null);
+        }
         return feedbackRepository.save(feedback);
     }
 
-    // Get feedbacks (filterable by name, email, or rating)
-    public List<Feedback> getFeedbacks(String name, String email, Integer rating) {
+    // Get feedbacks (filterable by name, email, rating, or flagged status)
+    public List<Feedback> getFeedbacks(String name, String email, Integer rating, Boolean flagged) {
         Specification<Feedback> spec = null;
 
         if (name != null && !name.isEmpty()) {
@@ -34,12 +42,28 @@ public class FeedbackService {
             spec = (spec == null ? ratingEquals(rating) : spec.and(ratingEquals(rating)));
         }
 
-        return spec == null ? feedbackRepository.findAll() : feedbackRepository.findAll(spec);
+        if (flagged != null) {
+            spec = (spec == null ? flaggedEquals(flagged) : spec.and(flaggedEquals(flagged)));
+        }
+
+        org.springframework.data.domain.Sort sortOrder = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id");
+        return spec == null ? feedbackRepository.findAll(sortOrder) : feedbackRepository.findAll(spec, sortOrder);
     }
 
     // Get single feedback by ID
     public Feedback getFeedbackById(int id) {
         return feedbackRepository.findById(id).orElse(null);
+    }
+
+    // Mark a flagged feedback as reviewed by admin
+    public Feedback markAsReviewed(int id) {
+        Optional<Feedback> existingFeedback = feedbackRepository.findById(id);
+        if (existingFeedback.isPresent()) {
+            Feedback f = existingFeedback.get();
+            f.setReviewed(true);
+            return feedbackRepository.save(f);
+        }
+        return null;
     }
 
     // Update feedback
@@ -51,6 +75,10 @@ public class FeedbackService {
             f.setEmail(feedback.getEmail());
             f.setMessage(feedback.getMessage());
             f.setRating(feedback.getRating());
+            if (f.getRating() <= 3) {
+                f.setFlagged(true);
+                f.setFlagReason("Low Rating Alert (" + f.getRating() + "/5 Stars)");
+            }
             return feedbackRepository.save(f);
         }
         return null;
@@ -77,5 +105,9 @@ public class FeedbackService {
 
     private Specification<Feedback> ratingEquals(int rating) {
         return (root, query, builder) -> builder.equal(root.get("rating"), rating);
+    }
+
+    private Specification<Feedback> flaggedEquals(boolean flagged) {
+        return (root, query, builder) -> builder.equal(root.get("flagged"), flagged);
     }
 }

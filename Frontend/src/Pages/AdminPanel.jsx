@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import "../Styles/AdminPanel.css";
 
 const AdminPanel = () => {
+  const { logout, user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [users, setUsers] = useState([]);
   const [boats, setBoats] = useState([]);
   const [trips, setTrips] = useState([]);
   const [activeTab, setActiveTab] = useState("bookings");
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   // --- at the top, add state for feedbacks ---
 const [feedbacks, setFeedbacks] = useState([]);
@@ -83,6 +90,15 @@ const handleDeleteFeedback = (id) => {
     .catch(console.error);
 };
 
+const handleReviewFeedback = (id) => {
+  axios
+    .put(`http://localhost:8080/api/feedbacks/${id}/review`)
+    .then(fetchFeedbacks)
+    .catch(console.error);
+};
+
+const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, REVIEWED
+
 
   // --- Booking Form ---
   const [bookingForm, setBookingForm] = useState({
@@ -101,6 +117,7 @@ const handleDeleteFeedback = (id) => {
     id: null,
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "USER"
   });
@@ -115,6 +132,7 @@ const handleDeleteFeedback = (id) => {
     const payload = {
       name: userForm.name,
       email: userForm.email,
+      phone: userForm.phone,
       password: userForm.password,
       role: userForm.role
     };
@@ -125,7 +143,7 @@ const handleDeleteFeedback = (id) => {
 
     apiCall
       .then(() => {
-        setUserForm({ id: null, name: "", email: "", password: "", role: "USER" });
+        setUserForm({ id: null, name: "", email: "", phone: "", password: "", role: "USER" });
         fetchDashboard();
       })
       .catch(console.error);
@@ -136,7 +154,8 @@ const handleDeleteFeedback = (id) => {
     setUserForm({
       id: user.id,
       name: user.name,
-      email: user.email,
+      email: user.email || "",
+      phone: user.phone || "",
       password: "",
       role: user.role
     });
@@ -150,6 +169,14 @@ const handleDeleteFeedback = (id) => {
       .catch(console.error);
   };
 
+  // Unlock User Account
+  const handleUnlockUser = (id) => {
+    axios
+      .put(`http://localhost:8080/api/users/${id}/unlock`)
+      .then(fetchDashboard)
+      .catch(console.error);
+  };
+
   // --- Boat Form ---
   const [boatForm, setBoatForm] = useState({
     id: null,
@@ -157,8 +184,9 @@ const handleDeleteFeedback = (id) => {
     capacity: "",
     price: "",
     boatType: "Luxury",
+    status: "AVAILABLE",
   });
-  const boatTypes = ["Luxury", "Standard", "Fishing", "Speed"];
+  const boatTypes = ["Luxury", "Standard", "Fishing", "Speed", "Catamaran", "Pontoon"];
 
   // --- Trip Form ---
   const [tripForm, setTripForm] = useState({
@@ -254,7 +282,11 @@ const handleDeleteFeedback = (id) => {
         });
         fetchDashboard();
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        const msg = err.response?.data?.message || "Boat assignment conflicts with an existing booking or maintenance status.";
+        alert("⚠️ Assignment Conflict: " + msg);
+      });
   };
 
   const handleEditBooking = (booking) =>
@@ -313,6 +345,7 @@ const handleDeleteFeedback = (id) => {
           capacity: "",
           price: "",
           boatType: "Luxury",
+          status: "AVAILABLE",
         });
         fetchDashboard();
       })
@@ -399,7 +432,19 @@ const handleDeleteFeedback = (id) => {
 
   return (
     <div className="admin-container">
-      <h1>Admin Panel</h1>
+      <div className="admin-header-bar">
+        <h1>Admin Panel</h1>
+        <div className="admin-user-controls">
+          {user && (
+            <span className="admin-user-badge">
+              ⚡ Logged as: <strong>{user.name || user.email}</strong>
+            </span>
+          )}
+          <button className="btn-admin-logout" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
+      </div>
       <div className="admin-tabs">
       {["bookings", "users", "boats", "trips", "feedbacks"].map((tab) => (
   <button
@@ -577,7 +622,9 @@ const handleDeleteFeedback = (id) => {
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>Phone</th>
                   <th>Role</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -586,10 +633,26 @@ const handleDeleteFeedback = (id) => {
                   <tr key={u.id}>
                     <td>{u.id}</td>
                     <td>{u.name}</td>
-                    <td>{u.email}</td>
+                    <td>{u.email || "-"}</td>
+                    <td>{u.phone || "-"}</td>
                     <td>{u.role}</td>
                     <td>
+                      {u.accountLocked ? (
+                        <span style={{ color: "#ef4444", fontWeight: 700 }}>🔒 Locked</span>
+                      ) : (
+                        <span style={{ color: "#10b981", fontWeight: 600 }}>Active</span>
+                      )}
+                    </td>
+                    <td>
                       <button onClick={() => handleEditUser(u)}>Edit</button>
+                      {u.accountLocked && (
+                        <button
+                          onClick={() => handleUnlockUser(u.id)}
+                          style={{ backgroundColor: "#0284c7", color: "#fff", marginLeft: "4px" }}
+                        >
+                          Unlock
+                        </button>
+                      )}
                       <button onClick={() => handleDeleteUser(u.id)}>Delete</button>
                     </td>
                   </tr>
@@ -611,7 +674,13 @@ const handleDeleteFeedback = (id) => {
               name="email"
               value={userForm.email}
               onChange={handleUserChange}
-              placeholder="Email"
+              placeholder="Email Address"
+            />
+            <input
+              name="phone"
+              value={userForm.phone}
+              onChange={handleUserChange}
+              placeholder="Phone Number"
             />
             <input
               name="password"
@@ -633,137 +702,303 @@ const handleDeleteFeedback = (id) => {
 
       {/* ✅ BOATS */}
       {activeTab === "boats" && (
-        <section>
-          <h2>Boats</h2>
-          <input
-            name="name"
-            value={boatForm.name}
-            onChange={handleBoatChange}
-            placeholder="Name"
-            required
-          />
-          <input
-            type="number"
-            min="1"
-            name="capacity"
-            value={boatForm.capacity}
-            onChange={handleBoatChange}
-            placeholder="Capacity"
-            required
-          />
-          <input
-            type="number"
-            min="1"
-            name="price"
-            value={boatForm.price}
-            onChange={handleBoatChange}
-            placeholder="Price"
-            required
-          />
-          <select
-            name="boatType"
-            value={boatForm.boatType}
-            onChange={handleBoatChange}
-          >
-            {boatTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <button onClick={handleSaveBoat}>
-            {boatForm.id ? "Update" : "Add"}
-          </button>
+        <section className="admin-section-boats">
+          <div className="section-header-flex">
+            <h2>🚤 Fleet & Boat Resource Management</h2>
+          </div>
 
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Capacity</th>
-                <th>Price</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {boats.map((b) => (
-                <tr key={b.id}>
-                  <td>{b.name}</td>
-                  <td>{b.capacity}</td>
-                  <td>{b.price}</td>
-                  <td>{b.boatType}</td>
-                  <td>
-                    <button onClick={() => handleEditBoat(b)}>Edit</button>
-                    <button onClick={() => handleDeleteBoat(b.id)}>
-                      Delete
-                    </button>
-                  </td>
+          {/* Fleet Metrics Banner */}
+          <div className="fleet-metrics-banner">
+            <div className="fleet-metric-item">
+              <span className="metric-icon">🚤</span>
+              <div>
+                <span className="metric-value">{boats.length}</span>
+                <span className="metric-label">Total Fleet Boats</span>
+              </div>
+            </div>
+
+            <div className="fleet-metric-item">
+              <span className="metric-icon">👥</span>
+              <div>
+                <span className="metric-value">
+                  {boats.reduce((acc, b) => acc + (parseInt(b.capacity) || 0), 0)} Seats
+                </span>
+                <span className="metric-label">Combined Seating Capacity</span>
+              </div>
+            </div>
+
+            <div className="fleet-metric-item">
+              <span className="metric-icon">✅</span>
+              <div>
+                <span className="metric-value">
+                  {boats.filter((b) => b.status === "AVAILABLE" || !b.status).length}
+                </span>
+                <span className="metric-label">Active Available Boats</span>
+              </div>
+            </div>
+
+            <div className="fleet-metric-item">
+              <span className="metric-icon">🛠️</span>
+              <div>
+                <span className="metric-value">
+                  {boats.filter((b) => b.status === "MAINTENANCE" || b.status === "UNAVAILABLE").length}
+                </span>
+                <span className="metric-label">Maintenance / Unavailable</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Boat Registration Form */}
+          <div className="boat-registration-form-card">
+            <h3>{boatForm.id ? "✏️ Edit Boat Resource Record" : "➕ Register New Boat Resource"}</h3>
+            <div className="form-fields-grid">
+              <div className="input-group">
+                <label>Boat Name *</label>
+                <input
+                  name="name"
+                  value={boatForm.name}
+                  onChange={handleBoatChange}
+                  placeholder="e.g. Aloka Royal Cruise"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Seating Capacity (Seats) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="capacity"
+                  value={boatForm.capacity}
+                  onChange={handleBoatChange}
+                  placeholder="e.g. 12"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Base Price (LKR) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  name="price"
+                  value={boatForm.price}
+                  onChange={handleBoatChange}
+                  placeholder="e.g. 5000"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Boat Vessel Type</label>
+                <select
+                  name="boatType"
+                  value={boatForm.boatType}
+                  onChange={handleBoatChange}
+                >
+                  {boatTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label>Operational Status</label>
+                <select
+                  name="status"
+                  value={boatForm.status || "AVAILABLE"}
+                  onChange={handleBoatChange}
+                >
+                  <option value="AVAILABLE">✅ Available for Trips</option>
+                  <option value="MAINTENANCE">🛠️ Under Maintenance</option>
+                  <option value="UNAVAILABLE">🚫 Unavailable</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-actions-row">
+              <button className="btn-save-boat" onClick={handleSaveBoat}>
+                {boatForm.id ? "💾 Save Changes & Update Record" : "🚀 Register Boat to Fleet"}
+              </button>
+              {boatForm.id && (
+                <button
+                  className="btn-cancel-edit"
+                  onClick={() =>
+                    setBoatForm({
+                      id: null,
+                      name: "",
+                      capacity: "",
+                      price: "",
+                      boatType: "Luxury",
+                      status: "AVAILABLE",
+                    })
+                  }
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Registered Boats Records Table */}
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Boat Name</th>
+                  <th>Seating Capacity</th>
+                  <th>Base Price (LKR)</th>
+                  <th>Vessel Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {boats.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: "center", padding: "24px" }}>
+                      No boat records registered. Use the form above to add a boat.
+                    </td>
+                  </tr>
+                ) : (
+                  boats.map((b) => (
+                    <tr key={b.id}>
+                      <td><strong>#{b.id}</strong></td>
+                      <td><strong>{b.name}</strong></td>
+                      <td>
+                        <span className="capacity-badge">🎟️ {b.capacity} Seats</span>
+                      </td>
+                      <td>LKR {Number(b.price).toLocaleString()}</td>
+                      <td>{b.boatType}</td>
+                      <td>
+                        {b.status === "MAINTENANCE" || b.status === "UNAVAILABLE" ? (
+                          <span className="status-badge maintenance">🛠️ Maintenance</span>
+                        ) : (
+                          <span className="status-badge available">✅ Available</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="action-buttons-cell">
+                          <button className="btn-edit-action" onClick={() => handleEditBoat(b)}>
+                            Edit
+                          </button>
+                          <button className="btn-delete-item" onClick={() => handleDeleteBoat(b.id)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
       {/* ✅ FEEDBACKS */}
 {activeTab === "feedbacks" && (
-  <section>
-    <h2>Feedbacks</h2>
+  <section className="admin-section-feedbacks">
+    <div className="section-header-flex">
+      <h2>Guest Feedbacks & Quality Monitoring</h2>
+      {feedbacks.filter((f) => f.flagged && !f.reviewed).length > 0 && (
+        <div className="low-rating-alert-banner">
+          ⚠️ <strong>{feedbacks.filter((f) => f.flagged && !f.reviewed).length} Pending Low-Rating Alerts</strong> (Rating ≤ 3 Stars require prompt review)
+        </div>
+      )}
+    </div>
 
-    {/* Feedback Form */}
-    {/* <div className="feedback-form-admin"> */}
-      {/* <h3>{feedbackForm.id ? "Edit Feedback" : "Add Feedback"}</h3> */}
-      {/* <input
-        name="name"
-        value={feedbackForm.name}
-        onChange={handleFeedbackChange}
-        placeholder="Name"
-        required
-      /> */}
-      {/* <textarea
-        name="message"
-        value={feedbackForm.message}
-        onChange={handleFeedbackChange}
-        placeholder="Feedback message"
-        rows="3"
-      /> */}
-      {/* <select name="rating" value={feedbackForm.rating} onChange={handleFeedbackChange}>
-        <option value={1}>⭐</option>
-        <option value={2}>⭐⭐</option>
-        <option value={3}>⭐⭐⭐</option>
-        <option value={4}>⭐⭐⭐⭐</option>
-        <option value={5}>⭐⭐⭐⭐⭐</option>
-      </select> */}
-      {/* <button onClick={handleSaveFeedback}>{feedbackForm.id ? "Update" : "Add"}</button> */}
-    {/* </div> */}
+    {/* Filter Buttons */}
+    <div className="feedback-filter-bar">
+      <button
+        className={`btn-filter ${feedbackFilter === "ALL" ? "active" : ""}`}
+        onClick={() => setFeedbackFilter("ALL")}
+      >
+        All Reviews ({feedbacks.length})
+      </button>
+      <button
+        className={`btn-filter alert ${feedbackFilter === "FLAGGED" ? "active" : ""}`}
+        onClick={() => setFeedbackFilter("FLAGGED")}
+      >
+        ⚠️ Low Rating Alerts ({feedbacks.filter((f) => f.flagged && !f.reviewed).length})
+      </button>
+      <button
+        className={`btn-filter ${feedbackFilter === "REVIEWED" ? "active" : ""}`}
+        onClick={() => setFeedbackFilter("REVIEWED")}
+      >
+        ✓ Reviewed ({feedbacks.filter((f) => f.reviewed).length})
+      </button>
+    </div>
 
     {/* Feedback Table */}
     {feedbacks.length === 0 ? (
-      <p>No feedbacks available.</p>
+      <p className="no-data-text">No feedbacks available.</p>
     ) : (
       <table className="admin-table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
-            <th>Message</th>
+            <th>Guest Name</th>
             <th>Rating</th>
-            <th>User Email</th>
+            <th>Message</th>
+            <th>Email</th>
+            <th>System Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {feedbacks.map((f) => (
-            <tr key={f.id}>
-              <td>{f.id}</td>
-              <td>{f.name}</td>
-              <td>{f.message}</td>
-              <td>{f.rating}</td>
-              <td>{f.email}</td>
-              <td>
-                <button onClick={() => handleDeleteFeedback(f.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
+          {feedbacks
+            .filter((f) => {
+              if (feedbackFilter === "FLAGGED") return f.flagged && !f.reviewed;
+              if (feedbackFilter === "REVIEWED") return f.reviewed;
+              return true;
+            })
+            .map((f) => (
+              <tr key={f.id} className={f.flagged && !f.reviewed ? "row-flagged-alert" : ""}>
+                <td><strong>#{f.id}</strong></td>
+                <td>{f.name}</td>
+                <td>
+                  <span className="rating-stars">
+                    {"⭐".repeat(Math.min(5, Math.max(1, f.rating || 5)))}
+                  </span>
+                  <span className="rating-num"> ({f.rating}/5)</span>
+                </td>
+                <td className="message-cell">{f.message}</td>
+                <td>{f.email}</td>
+                <td>
+                  {f.flagged && !f.reviewed ? (
+                    <span className="badge-flagged-alert" title={f.flagReason}>
+                      ⚠️ FLAGGED (Low Rating)
+                    </span>
+                  ) : f.reviewed ? (
+                    <span className="badge-reviewed">✓ Reviewed</span>
+                  ) : (
+                    <span className="badge-normal">Normal</span>
+                  )}
+                </td>
+                <td>
+                  <div className="action-buttons-cell">
+                    {f.flagged && !f.reviewed && (
+                      <button
+                        className="btn-mark-reviewed"
+                        onClick={() => handleReviewFeedback(f.id)}
+                        title="Mark alert as reviewed/resolved"
+                      >
+                        ✓ Mark Reviewed
+                      </button>
+                    )}
+                    <button
+                      className="btn-delete-item"
+                      onClick={() => handleDeleteFeedback(f.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
     )}
