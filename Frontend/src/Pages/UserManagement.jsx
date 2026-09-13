@@ -51,7 +51,7 @@ function UserManagement() {
           <div className="profile-header-text">
             <h2>{user?.name || "Safari Explorer"}</h2>
             <span className="profile-role-badge">
-              {user?.role === "ADMIN" ? "⚡ System Admin" : "⚓ Registered Explorer"}
+              {user?.role === "ADMIN" ? "⚡ System Admin" : (user?.role === "STAFF" ? "🧭 Safari Staff" : "⚓ Registered Explorer")}
             </span>
           </div>
         </div>

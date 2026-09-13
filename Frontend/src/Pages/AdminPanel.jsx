@@ -690,6 +690,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
             />
             <select name="role" value={userForm.role} onChange={handleUserChange}>
               <option value="USER">USER</option>
+              <option value="STAFF">STAFF</option>
               <option value="ADMIN">ADMIN</option>
             </select>
             <button onClick={handleSaveUser}>

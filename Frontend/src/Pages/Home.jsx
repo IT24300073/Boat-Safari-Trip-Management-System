@@ -30,8 +30,21 @@ const defaultTestimonials = [
 
 function Home() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [feedbacks, setFeedbacks] = useState([]);
+
+  // When user is signed in, remove access to public homepage and redirect to app
+  useEffect(() => {
+    if (isLoggedIn) {
+      if (user?.role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else if (user?.role === "STAFF") {
+        navigate("/schedule", { replace: true });
+      } else {
+        navigate("/booktrip", { replace: true });
+      }
+    }
+  }, [isLoggedIn, user, navigate]);
 
   useEffect(() => {
     axios
@@ -54,26 +67,13 @@ function Home() {
     }
   };
 
+  // Do not render public homepage if user is signed in
+  if (isLoggedIn) {
+    return null;
+  }
+
   return (
     <div className="home-container">
-      {/* Top Floating User Profile Pill (when logged in) */}
-      {isLoggedIn && (
-        <div 
-          className="profile-pill-container" 
-          onClick={() => navigate("/usermanagement")}
-          title="Go to User Profile"
-        >
-          <div className="profile-pill-badge">
-            <span className="online-indicator"></span>
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-              alt="User Profile"
-              className="profile-avatar"
-            />
-            <span className="profile-text">My Account</span>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
       <header className="hero-section">

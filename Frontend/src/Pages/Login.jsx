@@ -17,8 +17,10 @@ function Login() {
     if (isLoggedIn) {
       if (user?.role === "ADMIN") {
         navigate("/admin");
+      } else if (user?.role === "STAFF") {
+        navigate("/schedule");
       } else {
-        navigate("/");
+        navigate("/booktrip");
       }
     }
   }, [isLoggedIn, user, navigate]);
@@ -59,8 +61,10 @@ function Login() {
 
         if (response.data.role === "ADMIN") {
           navigate("/admin");
+        } else if (response.data.role === "STAFF") {
+          navigate("/schedule");
         } else {
-          navigate("/");
+          navigate("/booktrip");
         }
       } else if (response.status === 423) {
         setError(
