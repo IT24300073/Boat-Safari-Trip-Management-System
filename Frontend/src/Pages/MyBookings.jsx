@@ -15,6 +15,38 @@ function MyBookings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("date-desc");
 
+  // Supporting State for Edit & Delete
+  const [boats, setBoats] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [editingBooking, setEditingBooking] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    safariDate: "",
+    adults: 1,
+    children: 0,
+    boatId: "",
+  });
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+
+  // Fetch boats & trips for edit modal dropdowns and price calculation
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/api/boats")
+      .then((res) => {
+        const available = (res.data || []).filter(
+          (b) => b.status !== "MAINTENANCE" && b.status !== "UNAVAILABLE"
+        );
+        setBoats(available);
+      })
+      .catch((err) => console.error("Error fetching boats:", err));
+
+    axios
+      .get("http://localhost:8080/api/trips")
+      .then((res) => setTrips(res.data || []))
+      .catch((err) => console.error("Error fetching trips:", err));
+  }, []);
+
   // Fetch bookings for the logged-in user
   const fetchUserBookings = async () => {
     if (!user?.email) {
@@ -58,6 +90,104 @@ function MyBookings() {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }, []);
+
+  // --- Delete Booking Handler ---
+  const handleDeleteBooking = async (id, tripName, safariDate) => {
+    const confirmDelete = window.confirm(
+      `⚠️ Are you sure you want to cancel your reservation for "${tripName || "Safari"}" on ${safariDate}? This action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(`http://localhost:8080/api/bookings/${id}`);
+      setActionSuccessMsg(`✅ Booking #${id} was successfully canceled.`);
+      setTimeout(() => setActionSuccessMsg(""), 5000);
+      fetchUserBookings();
+    } catch (err) {
+      console.error("Failed to delete booking:", err);
+      alert("❌ Could not cancel booking. Please try again or contact support.");
+    }
+  };
+
+  // --- Edit Booking Handlers ---
+  const handleOpenEdit = (b) => {
+    setEditingBooking(b);
+    setEditFormData({
+      safariDate: b.safariDate || todayStr,
+      adults: b.adults || 1,
+      children: b.children || 0,
+      boatId: b.boat?.id ? String(b.boat.id) : (boats.length > 0 ? String(boats[0].id) : ""),
+    });
+    setEditError("");
+  };
+
+  const handleCloseEdit = () => {
+    setEditingBooking(null);
+    setEditError("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingBooking) return;
+
+    const selectedBoat = boats.find((b) => b.id === Number(editFormData.boatId)) || editingBooking.boat;
+    const boatCapacity = selectedBoat?.capacity || 10;
+    const totalPassengers = Number(editFormData.adults) + Number(editFormData.children);
+
+    if (!editFormData.safariDate) {
+      setEditError("Safari date is required.");
+      return;
+    }
+    if (Number(editFormData.adults) < 1) {
+      setEditError("At least 1 adult passenger is required.");
+      return;
+    }
+    if (totalPassengers > boatCapacity) {
+      setEditError(`Total passengers (${totalPassengers}) exceed boat capacity (${boatCapacity}).`);
+      return;
+    }
+    if (!editFormData.boatId) {
+      setEditError("Please select a boat.");
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError("");
+
+    // Calculate updated price
+    const matchedTrip = editingBooking.trip;
+    const adultRate = matchedTrip?.adultPrice || 0;
+    const childRate = matchedTrip?.childPrice || 0;
+    const boatRate = selectedBoat?.price || 0;
+    const recalculatedTotal =
+      Number(editFormData.adults) * adultRate +
+      Number(editFormData.children) * childRate +
+      boatRate;
+
+    const payload = {
+      ...editingBooking,
+      safariDate: editFormData.safariDate,
+      adults: Number(editFormData.adults),
+      children: Number(editFormData.children),
+      passengers: totalPassengers,
+      totalPrice: recalculatedTotal > 0 ? recalculatedTotal : editingBooking.totalPrice,
+      boat: { id: Number(editFormData.boatId) },
+      trip: matchedTrip ? { id: matchedTrip.id } : null,
+    };
+
+    try {
+      await axios.put(`http://localhost:8080/api/bookings/${editingBooking.id}`, payload);
+      setActionSuccessMsg(`✅ Reservation #${editingBooking.id} has been updated successfully!`);
+      setTimeout(() => setActionSuccessMsg(""), 5000);
+      handleCloseEdit();
+      fetchUserBookings();
+    } catch (err) {
+      console.error("Failed to update booking:", err);
+      const msg = err.response?.data?.message || "Boat assignment conflicts with an existing booking or maintenance status.";
+      setEditError("⚠️ Assignment Conflict: " + msg);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   // Classify a booking as 'upcoming', 'today', or 'past'
   const getBookingTiming = (bookingDate) => {
@@ -495,21 +625,37 @@ function MyBookings() {
                     </div>
 
                     <div className="card-buttons-row">
+                      <button
+                        className="btn-card-invoice"
+                        onClick={() => navigate(`/invoice/${b.id}`)}
+                      >
+                        📄 Ticket / Invoice
+                      </button>
+
+                      <button
+                        className="btn-card-edit"
+                        onClick={() => handleOpenEdit(b)}
+                        title="Modify reservation date or passengers"
+                      >
+                        ✏️ Edit
+                      </button>
+
+                      <button
+                        className="btn-card-delete"
+                        onClick={() => handleDeleteBooking(b.id, b.trip?.name, b.safariDate)}
+                        title="Cancel this reservation"
+                      >
+                        🗑️ Cancel
+                      </button>
+
                       {timing === "past" && (
                         <button
                           className="btn-card-feedback"
                           onClick={() => navigate("/feedback")}
                         >
-                          ⭐ Write Feedback
+                          ⭐ Feedback
                         </button>
                       )}
-
-                      <button
-                        className="btn-card-invoice"
-                        onClick={() => navigate(`/invoice/${b.id}`)}
-                      >
-                        📄 View Ticket & Invoice
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -518,6 +664,128 @@ function MyBookings() {
           </div>
         )}
       </div>
+
+      {/* Action Notification Toast */}
+      {actionSuccessMsg && (
+        <div className="booking-toast-alert">
+          <span>{actionSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <div className="edit-modal-backdrop" onClick={handleCloseEdit}>
+          <div className="edit-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header">
+              <div className="edit-modal-title-wrap">
+                <span className="edit-modal-icon">✏️</span>
+                <h3>Modify Reservation #{editingBooking.id}</h3>
+              </div>
+              <button className="btn-modal-close" onClick={handleCloseEdit}>✕</button>
+            </div>
+
+            <div className="edit-modal-body">
+              <div className="edit-trip-summary">
+                <span className="summary-label">Trip Package:</span>
+                <span className="summary-val">{editingBooking.trip?.name || "Madu River Safari"}</span>
+              </div>
+
+              {editError && <div className="edit-error-alert">{editError}</div>}
+
+              <div className="edit-form-grid">
+                <div className="edit-form-group">
+                  <label htmlFor="editSafariDate">📅 Safari Date</label>
+                  <input
+                    type="date"
+                    id="editSafariDate"
+                    min={todayStr}
+                    value={editFormData.safariDate}
+                    onChange={(e) => setEditFormData({ ...editFormData, safariDate: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="edit-form-group">
+                  <label htmlFor="editBoat">🚤 Assigned Boat</label>
+                  <select
+                    id="editBoat"
+                    value={editFormData.boatId}
+                    onChange={(e) => setEditFormData({ ...editFormData, boatId: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Boat</option>
+                    {boats.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.boatType}) — Max {b.capacity} seats
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="edit-form-group">
+                  <label htmlFor="editAdults">👥 Adults (Min 1)</label>
+                  <input
+                    type="number"
+                    id="editAdults"
+                    min="1"
+                    max="30"
+                    value={editFormData.adults}
+                    onChange={(e) => setEditFormData({ ...editFormData, adults: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="edit-form-group">
+                  <label htmlFor="editChildren">👶 Children (Age 0-12)</label>
+                  <input
+                    type="number"
+                    id="editChildren"
+                    min="0"
+                    max="20"
+                    value={editFormData.children}
+                    onChange={(e) => setEditFormData({ ...editFormData, children: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="edit-preview-box">
+                <div className="preview-stat">
+                  <span className="p-label">Total Guests:</span>
+                  <span className="p-val">{Number(editFormData.adults) + Number(editFormData.children)} Guests</span>
+                </div>
+                {boats.find((b) => b.id === Number(editFormData.boatId)) && (
+                  <div className="preview-stat">
+                    <span className="p-label">Boat Capacity:</span>
+                    <span className="p-val">
+                      {boats.find((b) => b.id === Number(editFormData.boatId))?.capacity} Max
+                    </span>
+                  </div>
+                )}
+                <div className="preview-stat price-stat">
+                  <span className="p-label">Estimated Total:</span>
+                  <span className="p-val price-highlight">
+                    LKR {(
+                      Number(editFormData.adults) * (editingBooking.trip?.adultPrice || 0) +
+                      Number(editFormData.children) * (editingBooking.trip?.childPrice || 0) +
+                      (boats.find((b) => b.id === Number(editFormData.boatId))?.price || 0)
+                    ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="edit-modal-footer">
+              <button className="btn-cancel-edit" onClick={handleCloseEdit} disabled={savingEdit}>
+                Cancel
+              </button>
+              <button className="btn-save-edit" onClick={handleSaveEdit} disabled={savingEdit}>
+                {savingEdit ? "Saving..." : "💾 Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
