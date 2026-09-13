@@ -243,12 +243,62 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
     return null;
   };
 
-  // --- Booking Handlers ---
-  const handleBookingChange = (e) =>
-    setBookingForm({ ...bookingForm, [e.target.name]: e.target.value });
+  // --- Booking Handlers & Auto-Calculation ---
+  const calculateBookingTotal = (adultsVal, childrenVal, boatIdVal, tripIdVal) => {
+    const adultCount = parseInt(adultsVal) || 0;
+    const childCount = parseInt(childrenVal) || 0;
+
+    const boat = boats.find((b) => String(b.id) === String(boatIdVal));
+    const trip = trips.find((t) => String(t.id) === String(tripIdVal));
+
+    const boatRate = boat ? Number(boat.price || 0) : 0;
+    const adultRate = trip ? Number(trip.adultPrice || 0) : 0;
+    const childRate = trip ? Number(trip.childPrice || 0) : 0;
+
+    if (adultCount > 0 || childCount > 0 || boat || trip) {
+      const sum = adultCount * adultRate + childCount * childRate + boatRate;
+      return sum > 0 ? sum.toFixed(2) : "";
+    }
+    return "";
+  };
+
+  const handleBookingChange = (e) => {
+    const { name, value } = e.target;
+    const updated = { ...bookingForm, [name]: value };
+
+    if (name === "adults" || name === "children" || name === "boatId" || name === "tripId") {
+      const calc = calculateBookingTotal(
+        name === "adults" ? value : updated.adults,
+        name === "children" ? value : updated.children,
+        name === "boatId" ? value : updated.boatId,
+        name === "tripId" ? value : updated.tripId
+      );
+      if (calc) {
+        updated.totalPrice = calc;
+      }
+    }
+
+    setBookingForm(updated);
+  };
 
   const handleSaveBooking = () => {
-    const error = validateBooking(bookingForm);
+    let finalTotalPrice = parseFloat(bookingForm.totalPrice);
+    if (isNaN(finalTotalPrice) || finalTotalPrice <= 0) {
+      const computed = calculateBookingTotal(
+        bookingForm.adults,
+        bookingForm.children,
+        bookingForm.boatId,
+        bookingForm.tripId
+      );
+      finalTotalPrice = parseFloat(computed) || 0;
+    }
+
+    const formToValidate = {
+      ...bookingForm,
+      totalPrice: finalTotalPrice > 0 ? String(finalTotalPrice) : bookingForm.totalPrice,
+    };
+
+    const error = validateBooking(formToValidate);
     if (error) return alert(error);
 
     const adultsCount = parseInt(bookingForm.adults);
@@ -259,9 +309,9 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       adults: adultsCount,
       children: childrenCount,
       passengers: adultsCount + childrenCount,
-      totalPrice: parseFloat(bookingForm.totalPrice),
-      boat: bookingForm.boatId ? { id: bookingForm.boatId } : null,
-      trip: bookingForm.tripId ? { id: bookingForm.tripId } : null,
+      totalPrice: finalTotalPrice,
+      boat: bookingForm.boatId ? { id: parseInt(bookingForm.boatId) } : null,
+      trip: bookingForm.tripId ? { id: parseInt(bookingForm.tripId) } : null,
     };
 
     const apiCall = bookingForm.id
@@ -568,16 +618,22 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               onChange={handleBookingChange}
               placeholder="Children"
             />
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              name="totalPrice"
-              value={bookingForm.totalPrice}
-              onChange={handleBookingChange}
-              placeholder="Total Price"
-              required
-            />
+            <div className="total-price-wrapper">
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                name="totalPrice"
+                value={bookingForm.totalPrice}
+                onChange={handleBookingChange}
+                placeholder="Total Price (Auto)"
+                readOnly
+                className="total-price-auto-input"
+                title="Automatically calculated based on: (Adults × Adult Price) + (Children × Child Price) + Boat Price"
+                required
+              />
+              <span className="auto-calc-badge">⚡ Auto-calculated</span>
+            </div>
             <select
               name="boatId"
               value={bookingForm.boatId}
@@ -587,7 +643,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               <option value="">Select Boat</option>
               {boats.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} ({b.boatType})
+                  {b.name} ({b.boatType}) — LKR {Number(b.price || 0).toLocaleString()}
                 </option>
               ))}
             </select>
@@ -600,13 +656,43 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               <option value="">Select Trip</option>
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.type})
+                  {t.name} ({t.type}) — Adult: LKR {Number(t.adultPrice || 0).toLocaleString()} | Child: LKR {Number(t.childPrice || 0).toLocaleString()}
                 </option>
               ))}
             </select>
             <button onClick={handleSaveBooking}>
               {bookingForm.id ? "Update" : "Add"}
             </button>
+            {bookingForm.id && (
+              <button
+                type="button"
+                className="btn-cancel-edit-booking"
+                onClick={() =>
+                  setBookingForm({
+                    id: null,
+                    name: "",
+                    email: "",
+                    safariDate: "",
+                    adults: "",
+                    children: "",
+                    totalPrice: "",
+                    boatId: "",
+                    tripId: "",
+                  })
+                }
+              >
+                Cancel
+              </button>
+            )}
+
+            {/* Live Calculation Formula Breakdown */}
+            {bookingForm.totalPrice && (
+              <div className="price-breakdown-pill">
+                <span>
+                  💡 <strong>Auto-Calculated Total:</strong> ({bookingForm.adults || 0} Adults × LKR {Number(trips.find(t => String(t.id) === String(bookingForm.tripId))?.adultPrice || 0).toLocaleString()}) + ({bookingForm.children || 0} Children × LKR {Number(trips.find(t => String(t.id) === String(bookingForm.tripId))?.childPrice || 0).toLocaleString()}) + Boat: {boats.find(b => String(b.id) === String(bookingForm.boatId))?.name || "Selected Boat"} (LKR {Number(boats.find(b => String(b.id) === String(bookingForm.boatId))?.price || 0).toLocaleString()}) = <strong>LKR {Number(bookingForm.totalPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </span>
+              </div>
+            )}
           </div>
         </section>
       )}
