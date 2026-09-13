@@ -85,11 +85,37 @@
   box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
 }
 
+.nav-auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .btn-nav-login {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #000000;
+  background: transparent;
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
   text-decoration: none;
   font-weight: 700;
+  font-size: 0.9rem;
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  transition: var(--transition-normal);
+}
+
+.btn-nav-login:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+}
+
+.btn-nav-register {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #070b14;
+  text-decoration: none;
+  font-weight: 800;
   font-size: 0.9rem;
   padding: 8px 22px;
   border-radius: var(--radius-full);
@@ -97,9 +123,10 @@
   transition: var(--transition-normal);
 }
 
-.btn-nav-login:hover {
+.btn-nav-register:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
 .nav-user-group {

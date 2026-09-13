@@ -130,10 +130,46 @@
   box-sizing: border-box;
 }
 
+.input-with-icon input.has-toggle {
+  padding-right: 44px;
+}
+
 .input-with-icon input:focus {
   outline: none;
   border-color: var(--amber-primary);
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  z-index: 2;
+}
+
+.password-toggle-btn:hover {
+  color: var(--amber-primary);
+  transform: scale(1.08);
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+  color: var(--amber-primary);
+}
+
+.password-toggle-btn .eye-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .btn-auth-submit {
