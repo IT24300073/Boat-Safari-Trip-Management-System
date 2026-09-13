@@ -217,28 +217,163 @@ public class SafariScheduleService {
         schedule.setSeatStatus(seatStatus);
     }
 
+    @Autowired
+    private SE.BOAT.SAFARI.Trip.TripRepository tripRepository;
+
     public List<SafariSchedule> getAllSchedules() {
         List<SafariSchedule> list = safariScheduleRepository.findAll();
         list.forEach(this::enrichScheduleSeatAvailability);
         return list;
     }
 
-    public List<SafariSchedule> searchAvailableSchedules(String dateStr, String timeSlot) {
-        LocalDate date = (dateStr != null && !dateStr.trim().isEmpty()) ? LocalDate.parse(dateStr.trim()) : null;
-        String slot = (timeSlot != null && !timeSlot.trim().isEmpty() && !"ALL".equalsIgnoreCase(timeSlot.trim())) ? timeSlot.trim() : null;
+    private String formatTripTimeSlot(String startingTime, String duration) {
+        if (startingTime == null || startingTime.trim().isEmpty()) {
+            return "Flexible Departure";
+        }
+        if (startingTime.contains("AM") || startingTime.contains("PM") || startingTime.contains("-")) {
+            return startingTime;
+        }
+        try {
+            String[] parts = startingTime.trim().split(":");
+            int hour = Integer.parseInt(parts[0]);
+            int min = Integer.parseInt(parts[1]);
 
-        List<SafariSchedule> results;
-        if (date != null && slot != null) {
-            results = safariScheduleRepository.findByScheduleDateAndTimeSlotAndStatus(date, slot, "SCHEDULED");
-        } else if (date != null) {
-            results = safariScheduleRepository.findByScheduleDateAndStatus(date, "SCHEDULED");
-        } else if (slot != null) {
-            results = safariScheduleRepository.findByTimeSlotAndStatus(slot, "SCHEDULED");
-        } else {
-            results = safariScheduleRepository.findByStatus("SCHEDULED");
+            int durMinutes = 120;
+            if (duration != null) {
+                String dLower = duration.toLowerCase();
+                if (dLower.contains("3.5")) durMinutes = 210;
+                else if (dLower.contains("2.5")) durMinutes = 150;
+                else if (dLower.contains("1.5")) durMinutes = 90;
+                else if (dLower.contains("3")) durMinutes = 180;
+                else if (dLower.contains("1")) durMinutes = 60;
+            }
+
+            int endMinutesTotal = hour * 60 + min + durMinutes;
+            int endHour = (endMinutesTotal / 60) % 24;
+            int endMin = endMinutesTotal % 60;
+
+            String startFormatted = String.format("%02d:%02d %s", (hour == 0 || hour == 12) ? 12 : hour % 12, min, hour >= 12 ? "PM" : "AM");
+            String endFormatted = String.format("%02d:%02d %s", (endHour == 0 || endHour == 12) ? 12 : endHour % 12, endMin, endHour >= 12 ? "PM" : "AM");
+            return startFormatted + " - " + endFormatted;
+        } catch (Exception e) {
+            return startingTime + (duration != null ? " (" + duration + ")" : "");
+        }
+    }
+
+    private boolean matchesTimeFilter(String slotText, String filter) {
+        if (filter == null || filter.trim().isEmpty() || "ALL".equalsIgnoreCase(filter)) {
+            return true;
+        }
+        if (slotText == null) return false;
+        String s = slotText.trim().toUpperCase();
+        String f = filter.trim().toUpperCase();
+
+        // Extract start time part (before the hyphen if present)
+        String startTimePart = s;
+        if (s.contains("-")) {
+            startTimePart = s.split("-")[0].trim();
         }
 
-        results.forEach(this::enrichScheduleSeatAvailability);
-        return results;
+        // Parse hour in 24-hour format
+        int hour24 = -1;
+        try {
+            String timeOnly = startTimePart.replaceAll("[^0-9:]", "");
+            if (timeOnly.contains(":")) {
+                int h = Integer.parseInt(timeOnly.split(":")[0]);
+                if (startTimePart.contains("PM") && h < 12) {
+                    h += 12;
+                } else if (startTimePart.contains("AM") && h == 12) {
+                    h = 0;
+                }
+                hour24 = h;
+            }
+        } catch (Exception ignored) {}
+
+        if (f.equals("MORNING") || f.contains("MORNING") || f.contains("08:00")) {
+            if (hour24 >= 0) return hour24 >= 5 && hour24 < 11;
+            return startTimePart.contains("AM");
+        }
+        if (f.equals("MIDDAY") || f.contains("MIDDAY") || f.contains("11:00")) {
+            if (hour24 >= 0) return hour24 >= 11 && hour24 < 14;
+            return startTimePart.contains("11:") || startTimePart.contains("12:") || startTimePart.contains("01:00 PM");
+        }
+        if (f.equals("AFTERNOON") || f.contains("AFTERNOON") || f.contains("02:00")) {
+            if (hour24 >= 0) return hour24 >= 14 && hour24 < 16;
+            return startTimePart.contains("02:") || startTimePart.contains("03:00") || startTimePart.contains("01:00 PM");
+        }
+        if (f.equals("SUNSET") || f.contains("SUNSET") || f.contains("04:30") || f.contains("03:30")) {
+            if (hour24 >= 0) return hour24 >= 16 && hour24 < 19;
+            return startTimePart.contains("04:") || startTimePart.contains("05:") || startTimePart.contains("03:30");
+        }
+        if (f.equals("NIGHT") || f.contains("NIGHT") || f.contains("07:00")) {
+            if (hour24 >= 0) return hour24 >= 19 || hour24 < 5;
+            return startTimePart.contains("07:") || startTimePart.contains("08:") || startTimePart.contains("09:") || startTimePart.contains("10:");
+        }
+
+        return s.contains(f);
+    }
+
+    public List<SafariSchedule> searchAvailableSchedules(String dateStr, String timeSlot) {
+        LocalDate date = (dateStr != null && !dateStr.trim().isEmpty()) ? LocalDate.parse(dateStr.trim()) : LocalDate.now();
+        String slot = (timeSlot != null && !timeSlot.trim().isEmpty() && !"ALL".equalsIgnoreCase(timeSlot.trim())) ? timeSlot.trim() : null;
+
+        List<SafariSchedule> dbSchedules;
+        if (date != null) {
+            dbSchedules = safariScheduleRepository.findByScheduleDateAndStatus(date, "SCHEDULED");
+        } else {
+            dbSchedules = safariScheduleRepository.findByStatus("SCHEDULED");
+        }
+
+        List<SafariSchedule> combined = new java.util.ArrayList<>(dbSchedules);
+
+        // Ensure all active safari packages are available on the selected date
+        if (date != null) {
+            List<SE.BOAT.SAFARI.Trip.Trip> allTrips = tripRepository.findAll();
+            List<Boat> allBoats = boatRepository.findAll().stream()
+                    .filter(b -> !"MAINTENANCE".equalsIgnoreCase(b.getStatus()) && !"UNAVAILABLE".equalsIgnoreCase(b.getStatus()))
+                    .toList();
+
+            String[] guides = {"Captain Fernando", "Captain Nimal", "Captain Sunimal", "Captain Perera", "Captain Silva"};
+
+            long virtualIdCounter = -1000;
+            for (int i = 0; i < allTrips.size(); i++) {
+                SE.BOAT.SAFARI.Trip.Trip trip = allTrips.get(i);
+                boolean alreadyScheduled = combined.stream()
+                        .anyMatch(s -> s.getTripName() != null && s.getTripName().equalsIgnoreCase(trip.getName()));
+                if (!alreadyScheduled) {
+                    Boat assignedBoat = allBoats.isEmpty() ? null : allBoats.get(i % allBoats.size());
+                    String guide = guides[i % guides.length];
+
+                    SafariSchedule virtualSlot = new SafariSchedule();
+                    virtualSlot.setId(virtualIdCounter--);
+                    virtualSlot.setTripName(trip.getName());
+                    virtualSlot.setScheduleDate(date);
+
+                    String timeSlotStr = formatTripTimeSlot(trip.getStartingTime(), trip.getDuration());
+                    virtualSlot.setTimeSlot(timeSlotStr);
+
+                    if (assignedBoat != null) {
+                        virtualSlot.setBoatId(assignedBoat.getId());
+                        virtualSlot.setBoatName(assignedBoat.getName());
+                        virtualSlot.setTotalCapacity(assignedBoat.getCapacity());
+                    } else {
+                        virtualSlot.setBoatId(1);
+                        virtualSlot.setBoatName("Aloka Fleet Boat");
+                        virtualSlot.setTotalCapacity(10);
+                    }
+                    virtualSlot.setGuideName(guide);
+                    virtualSlot.setStatus("SCHEDULED");
+                    combined.add(virtualSlot);
+                }
+            }
+        }
+
+        // Apply timeSlot filter if specified
+        List<SafariSchedule> filtered = combined.stream()
+                .filter(s -> matchesTimeFilter(s.getTimeSlot(), slot))
+                .toList();
+
+        filtered.forEach(this::enrichScheduleSeatAvailability);
+        return filtered;
     }
 }

@@ -14,12 +14,14 @@ function BookTrip() {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
 
-  // Search State
-  const [searchDate, setSearchDate] = useState("");
+  // Search State - Default to today's date so users immediately see available slots
+  const [searchDate, setSearchDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [searchTimeSlot, setSearchTimeSlot] = useState("ALL");
   const [scheduledSlots, setScheduledSlots] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [bookingPrefillDate, setBookingPrefillDate] = useState("");
+  const [bookingPrefillBoatId, setBookingPrefillBoatId] = useState("");
 
   // Redirect if user not logged in
   useEffect(() => {
@@ -65,13 +67,15 @@ function BookTrip() {
   };
 
   const handleResetSearch = () => {
-    setSearchDate("");
+    setSearchDate(new Date().toISOString().split("T")[0]);
     setSearchTimeSlot("ALL");
     setScheduledSlots([]);
     setHasSearched(false);
   };
 
   const handleSelectTrip = (trip) => {
+    setBookingPrefillDate(searchDate || "");
+    setBookingPrefillBoatId("");
     setSelectedTrip(trip);
     setShowBooking(true);
   };
@@ -89,6 +93,8 @@ function BookTrip() {
       duration: "2 Hours",
     };
 
+    setBookingPrefillDate(slot.scheduleDate || searchDate || "");
+    setBookingPrefillBoatId(slot.boatId ? String(slot.boatId) : "");
     setSelectedTrip(matchedTrip);
     setShowBooking(true);
   };
@@ -125,10 +131,11 @@ function BookTrip() {
               className="search-select-input"
             >
               <option value="ALL">All Time Slots (Anytime)</option>
-              <option value="Morning (08:00 AM - 10:00 AM)">Morning (08:00 AM - 10:00 AM)</option>
-              <option value="Midday (11:00 AM - 01:00 PM)">Midday (11:00 AM - 01:00 PM)</option>
-              <option value="Afternoon (02:00 PM - 04:00 PM)">Afternoon (02:00 PM - 04:00 PM)</option>
-              <option value="Sunset (04:30 PM - 06:30 PM)">Sunset (04:30 PM - 06:30 PM)</option>
+              <option value="MORNING">Morning (06:00 AM - 10:30 AM)</option>
+              <option value="MIDDAY">Midday (11:00 AM - 01:30 PM)</option>
+              <option value="AFTERNOON">Afternoon (02:00 PM - 04:00 PM)</option>
+              <option value="SUNSET">Sunset Cruise (04:30 PM - 06:30 PM)</option>
+              <option value="NIGHT">Night Safari (07:00 PM - 09:00 PM)</option>
             </select>
           </div>
 
@@ -170,8 +177,16 @@ function BookTrip() {
             ) : scheduledSlots.length === 0 ? (
               <div className="empty-trips-card">
                 <div className="empty-icon">🗓️</div>
-                <h3>No Matching Safari Slots Found</h3>
-                <p>No active safari trips are scheduled for the selected date/time slot. Try choosing a different date or time slot.</p>
+                <h3>No Specific Safari Departures Found</h3>
+                <p>No departures match your selected time slot on {searchDate || "this date"}. Clear the time filter to browse all available daily safari packages.</p>
+                <button
+                  type="button"
+                  className="btn-reset-search"
+                  onClick={handleResetSearch}
+                  style={{ marginTop: "14px", display: "inline-flex", marginInline: "auto" }}
+                >
+                  🔄 View All Daily Safari Packages
+                </button>
               </div>
             ) : (
               <div className="trip-cards-grid">
@@ -305,7 +320,12 @@ function BookTrip() {
       </div>
 
       {showBooking && selectedTrip && (
-        <Booking trip={selectedTrip} setShowBooking={setShowBooking} />
+        <Booking
+          trip={selectedTrip}
+          initialDate={bookingPrefillDate}
+          initialBoatId={bookingPrefillBoatId}
+          setShowBooking={setShowBooking}
+        />
       )}
     </div>
   );

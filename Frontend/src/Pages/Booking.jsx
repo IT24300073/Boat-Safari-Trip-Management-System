@@ -3,17 +3,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-function Booking({ setShowBooking, trip }) {
+function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    date: "",
+    date: initialDate || "",
     adults: 1,
     children: 0,
-    boatId: "",
+    boatId: initialBoatId ? String(initialBoatId) : "",
     tripId: trip?.id ? String(trip.id) : "",
     paymentMethod: "card",
     cardNumber: "",
@@ -45,8 +45,14 @@ function Booking({ setShowBooking, trip }) {
           (b) => b.status !== "MAINTENANCE" && b.status !== "UNAVAILABLE"
         );
         setBoats(availableBoats);
-        if (availableBoats.length > 0 && !formData.boatId) {
-          setFormData((prev) => ({ ...prev, boatId: String(availableBoats[0].id) }));
+        if (availableBoats.length > 0) {
+          setFormData((prev) => {
+            if (prev.boatId) return prev;
+            const chosenId = initialBoatId && availableBoats.some((b) => b.id === Number(initialBoatId))
+              ? String(initialBoatId)
+              : String(availableBoats[0].id);
+            return { ...prev, boatId: chosenId };
+          });
         }
       })
       .catch((err) => console.error("Error fetching boats:", err));
