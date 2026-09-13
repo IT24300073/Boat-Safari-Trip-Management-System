@@ -204,6 +204,10 @@ public class SafariScheduleService {
                     schedule.getBoatId(), schedule.getScheduleDate()
             );
             bookedSeats = bookings.stream()
+                    .filter(b -> schedule.getTripName() == null
+                            || b.getTrip() == null
+                            || b.getTrip().getName() == null
+                            || b.getTrip().getName().trim().equalsIgnoreCase(schedule.getTripName().trim()))
                     .mapToInt(b -> b.getPassengers() > 0 ? b.getPassengers() : (b.getAdults() + b.getChildren()))
                     .sum();
         }
@@ -333,37 +337,86 @@ public class SafariScheduleService {
                     .filter(b -> !"MAINTENANCE".equalsIgnoreCase(b.getStatus()) && !"UNAVAILABLE".equalsIgnoreCase(b.getStatus()))
                     .toList();
 
-            String[] guides = {"Captain Fernando", "Captain Nimal", "Captain Sunimal", "Captain Perera", "Captain Silva"};
+            List<SE.BOAT.SAFARI.Booking.Booking> bookingsOnDate = bookingRepository.findAll().stream()
+                    .filter(b -> date.equals(b.getSafariDate()))
+                    .toList();
 
+            java.util.Set<Integer> allocatedBoatIds = new java.util.HashSet<>();
+            for (SafariSchedule s : dbSchedules) {
+                if (s.getBoatId() > 0) allocatedBoatIds.add(s.getBoatId());
+            }
+
+            String[] guides = {"Captain Fernando", "Captain Nimal", "Captain Sunimal", "Captain Perera", "Captain Silva"};
             long virtualIdCounter = -1000;
+
             for (int i = 0; i < allTrips.size(); i++) {
                 SE.BOAT.SAFARI.Trip.Trip trip = allTrips.get(i);
                 boolean alreadyScheduled = combined.stream()
                         .anyMatch(s -> s.getTripName() != null && s.getTripName().equalsIgnoreCase(trip.getName()));
+
                 if (!alreadyScheduled) {
-                    Boat assignedBoat = allBoats.isEmpty() ? null : allBoats.get(i % allBoats.size());
-                    String guide = guides[i % guides.length];
+                    // Check if this trip already has active bookings on this date
+                    List<SE.BOAT.SAFARI.Booking.Booking> tripBookings = bookingsOnDate.stream()
+                            .filter(b -> b.getTrip() != null && (
+                                    b.getTrip().getId().equals(trip.getId()) ||
+                                    (b.getTrip().getName() != null && b.getTrip().getName().equalsIgnoreCase(trip.getName()))
+                            ))
+                            .toList();
 
-                    SafariSchedule virtualSlot = new SafariSchedule();
-                    virtualSlot.setId(virtualIdCounter--);
-                    virtualSlot.setTripName(trip.getName());
-                    virtualSlot.setScheduleDate(date);
+                    // Group tripBookings by boat if any
+                    java.util.Map<Integer, List<SE.BOAT.SAFARI.Booking.Booking>> bookingsByBoat = tripBookings.stream()
+                            .filter(b -> b.getBoat() != null)
+                            .collect(java.util.stream.Collectors.groupingBy(b -> b.getBoat().getId()));
 
-                    String timeSlotStr = formatTripTimeSlot(trip.getStartingTime(), trip.getDuration());
-                    virtualSlot.setTimeSlot(timeSlotStr);
+                    if (!bookingsByBoat.isEmpty()) {
+                        for (java.util.Map.Entry<Integer, List<SE.BOAT.SAFARI.Booking.Booking>> entry : bookingsByBoat.entrySet()) {
+                            Boat bookedBoat = entry.getValue().get(0).getBoat();
+                            allocatedBoatIds.add(bookedBoat.getId());
 
-                    if (assignedBoat != null) {
-                        virtualSlot.setBoatId(assignedBoat.getId());
-                        virtualSlot.setBoatName(assignedBoat.getName());
-                        virtualSlot.setTotalCapacity(assignedBoat.getCapacity());
+                            String guide = guides[i % guides.length];
+                            SafariSchedule virtualSlot = new SafariSchedule();
+                            virtualSlot.setId(virtualIdCounter--);
+                            virtualSlot.setTripName(trip.getName());
+                            virtualSlot.setScheduleDate(date);
+                            virtualSlot.setTimeSlot(formatTripTimeSlot(trip.getStartingTime(), trip.getDuration()));
+                            virtualSlot.setBoatId(bookedBoat.getId());
+                            virtualSlot.setBoatName(bookedBoat.getName());
+                            virtualSlot.setTotalCapacity(bookedBoat.getCapacity());
+                            virtualSlot.setGuideName(guide);
+                            virtualSlot.setStatus("SCHEDULED");
+                            combined.add(virtualSlot);
+                        }
                     } else {
-                        virtualSlot.setBoatId(1);
-                        virtualSlot.setBoatName("Aloka Fleet Boat");
-                        virtualSlot.setTotalCapacity(10);
+                        // Trip has no bookings yet today: assign an available unallocated boat
+                        Boat assignedBoat = allBoats.stream()
+                                .filter(b -> !allocatedBoatIds.contains(b.getId()))
+                                .findFirst()
+                                .orElse(allBoats.isEmpty() ? null : allBoats.get(i % allBoats.size()));
+
+                        if (assignedBoat != null) {
+                            allocatedBoatIds.add(assignedBoat.getId());
+                        }
+
+                        String guide = guides[i % guides.length];
+                        SafariSchedule virtualSlot = new SafariSchedule();
+                        virtualSlot.setId(virtualIdCounter--);
+                        virtualSlot.setTripName(trip.getName());
+                        virtualSlot.setScheduleDate(date);
+                        virtualSlot.setTimeSlot(formatTripTimeSlot(trip.getStartingTime(), trip.getDuration()));
+
+                        if (assignedBoat != null) {
+                            virtualSlot.setBoatId(assignedBoat.getId());
+                            virtualSlot.setBoatName(assignedBoat.getName());
+                            virtualSlot.setTotalCapacity(assignedBoat.getCapacity());
+                        } else {
+                            virtualSlot.setBoatId(1);
+                            virtualSlot.setBoatName("Aloka Fleet Boat");
+                            virtualSlot.setTotalCapacity(10);
+                        }
+                        virtualSlot.setGuideName(guide);
+                        virtualSlot.setStatus("SCHEDULED");
+                        combined.add(virtualSlot);
                     }
-                    virtualSlot.setGuideName(guide);
-                    virtualSlot.setStatus("SCHEDULED");
-                    combined.add(virtualSlot);
                 }
             }
         }

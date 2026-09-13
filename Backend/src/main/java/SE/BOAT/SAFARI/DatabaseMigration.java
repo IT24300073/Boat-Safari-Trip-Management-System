@@ -29,6 +29,7 @@ public class DatabaseMigration implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE booking DROP CONSTRAINT IF EXISTS fkrlgbu237cakb9uoe8u9mlrd09");
             jdbcTemplate.execute("DROP TABLE IF EXISTS boats CASCADE");
             jdbcTemplate.execute("DROP TABLE IF EXISTS admins CASCADE");
+            jdbcTemplate.execute("UPDATE booking SET passengers = adults + children WHERE passengers IS NULL OR passengers <= 0");
         } catch (Exception e) {
             System.err.println(">>> [MIGRATION ERROR]: " + e.getMessage());
         }

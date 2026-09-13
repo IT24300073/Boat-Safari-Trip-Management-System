@@ -29,19 +29,45 @@ public class BookingService {
             throw new IllegalStateException("Selected boat '" + boat.getName() + "' is currently under maintenance / unavailable for trip assignment.");
         }
 
-        // 2. Prevent double assignment on the same safari date
+        // 2. Validate boat assignment and capacity on the same safari date
         if (booking.getSafariDate() != null) {
             List<Booking> existingOnDate = bookingRepository.findByBoatIdAndSafariDate(boatId, booking.getSafariDate());
+            int totalExistingPassengers = 0;
+
             for (Booking existing : existingOnDate) {
                 if (excludeBookingId == null || existing.getId() != excludeBookingId) {
-                    throw new IllegalStateException("Assignment Conflict: Boat '" + (boat != null ? boat.getName() : "ID " + boatId) + "' is already assigned to Booking #" + existing.getId() + " on " + booking.getSafariDate() + ". Double assignment blocked.");
+                    // Prevent assigning the same boat to two different trips on the same date
+                    if (existing.getTrip() != null && booking.getTrip() != null
+                            && !existing.getTrip().getId().equals(booking.getTrip().getId())) {
+                        throw new IllegalStateException("Assignment Conflict: Boat '" + (boat != null ? boat.getName() : "ID " + boatId)
+                                + "' is already assigned to trip '" + existing.getTrip().getName() + "' on " + booking.getSafariDate() + ".");
+                    }
+
+                    totalExistingPassengers += existing.getPassengers() > 0
+                            ? existing.getPassengers()
+                            : (existing.getAdults() + existing.getChildren());
                 }
+            }
+
+            int newPassengers = booking.getPassengers() > 0
+                    ? booking.getPassengers()
+                    : (booking.getAdults() + booking.getChildren());
+
+            int capacity = boat != null ? boat.getCapacity() : 10;
+            if (totalExistingPassengers + newPassengers > capacity) {
+                int remaining = Math.max(0, capacity - totalExistingPassengers);
+                throw new IllegalStateException("Capacity Exceeded: Boat '" + (boat != null ? boat.getName() : "ID " + boatId)
+                        + "' only has " + remaining + " seat(s) available on " + booking.getSafariDate() + " (attempted to reserve " + newPassengers + " seats).");
             }
         }
     }
 
     public Booking saveBooking(Booking booking) {
         validateAssignmentConflict(booking, null);
+
+        if (booking.getPassengers() <= 0) {
+            booking.setPassengers(booking.getAdults() + booking.getChildren());
+        }
 
         if (booking.getTransactionReference() == null || booking.getTransactionReference().trim().isEmpty()) {
             booking.setTransactionReference("TXN-" + System.currentTimeMillis());
@@ -91,7 +117,8 @@ public class BookingService {
                     existing.setName(booking.getName());
                     existing.setEmail(booking.getEmail());
                     existing.setSafariDate(booking.getSafariDate());
-                    existing.setPassengers(booking.getPassengers());
+                    int pass = booking.getPassengers() > 0 ? booking.getPassengers() : (booking.getAdults() + booking.getChildren());
+                    existing.setPassengers(pass);
                     existing.setBoat(booking.getBoat());
                     existing.setTrip(booking.getTrip());
                     existing.setAdults(booking.getAdults());

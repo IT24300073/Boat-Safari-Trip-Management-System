@@ -221,7 +221,7 @@ function BookTrip() {
                           ) : slot.seatStatus === "FULL" || slot.remainingSeats === 0 ? (
                             <span className="seat-badge full">🔴 SOLD OUT (0 Seats)</span>
                           ) : slot.seatStatus === "LIMITED" ? (
-                            <span className="seat-badge limited">🟡 {slot.remainingSeats} Seats Left</span>
+                            <span className="seat-badge limited">🟡 {slot.remainingSeats} / {slot.totalCapacity || 10} Seats Available ({slot.bookedSeats} Booked)</span>
                           ) : (
                             <span className="seat-badge available">🟢 {slot.remainingSeats} / {slot.totalCapacity || 10} Seats Available</span>
                           )}

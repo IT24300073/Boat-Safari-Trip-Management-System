@@ -169,6 +169,7 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
       safariDate: formData.date,
       adults: formData.adults,
       children: formData.children,
+      passengers: Number(formData.adults) + Number(formData.children),
       totalPrice,
       paymentMethod: formData.paymentMethod,
       boat: selectedBoat ? { id: selectedBoat.id } : null,
