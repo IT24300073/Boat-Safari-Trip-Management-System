@@ -24,6 +24,11 @@ public class DatabaseMigration implements CommandLineRunner {
             jdbcTemplate.execute("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1, false)");
             jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq')");
             System.out.println(">>> [MIGRATION] 'users' table schema updated successfully on Supabase!");
+
+            // Drop legacy foreign key constraints and duplicate tables
+            jdbcTemplate.execute("ALTER TABLE booking DROP CONSTRAINT IF EXISTS fkrlgbu237cakb9uoe8u9mlrd09");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS boats CASCADE");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS admins CASCADE");
         } catch (Exception e) {
             System.err.println(">>> [MIGRATION ERROR]: " + e.getMessage());
         }

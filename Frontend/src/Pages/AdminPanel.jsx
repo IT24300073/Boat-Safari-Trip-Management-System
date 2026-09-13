@@ -251,10 +251,14 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
     const error = validateBooking(bookingForm);
     if (error) return alert(error);
 
+    const adultsCount = parseInt(bookingForm.adults);
+    const childrenCount = parseInt(bookingForm.children) || 0;
+
     const payload = {
       ...bookingForm,
-      adults: parseInt(bookingForm.adults),
-      children: parseInt(bookingForm.children),
+      adults: adultsCount,
+      children: childrenCount,
+      passengers: adultsCount + childrenCount,
       totalPrice: parseFloat(bookingForm.totalPrice),
       boat: bookingForm.boatId ? { id: bookingForm.boatId } : null,
       trip: bookingForm.tripId ? { id: bookingForm.tripId } : null,

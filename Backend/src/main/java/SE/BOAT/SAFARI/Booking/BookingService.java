@@ -73,6 +73,13 @@ public class BookingService {
         return bookings;
     }
 
+    public List<Booking> getBookingsByUserEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return bookingRepository.findByEmailIgnoreCaseOrderBySafariDateDesc(email.trim());
+    }
+
     public Booking getBookingById(int id) {
         return bookingRepository.findById(id).orElse(null);
     }

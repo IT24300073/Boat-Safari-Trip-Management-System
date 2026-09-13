@@ -83,7 +83,27 @@ function UserManagement() {
             </div>
           </div>
 
-          {/* Section 2: Security & Password Update */}
+          {/* Section 2: Safari Bookings Quick Access */}
+          {user?.role !== "STAFF" && (
+            <div className="profile-card-section bookings-shortcut-section">
+              <div className="section-title-row">
+                <h3>🎟️ Safari Bookings & Passes</h3>
+                <span className="shortcut-badge">Explorer Portal</span>
+              </div>
+              <p className="section-hint">
+                View all your reserved river safaris, track upcoming expeditions, and download official booking invoices.
+              </p>
+              <button
+                className="btn-view-my-bookings"
+                onClick={() => navigate("/my-bookings")}
+              >
+                <span>View My Safari Bookings</span>
+                <span className="btn-arrow">→</span>
+              </button>
+            </div>
+          )}
+
+          {/* Section 3: Security & Password Update */}
           <div className="profile-card-section">
             <h3>🔒 Account Security</h3>
             <p className="section-hint">Update your account password for enhanced account security.</p>

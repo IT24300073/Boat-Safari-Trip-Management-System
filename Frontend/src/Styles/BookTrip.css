@@ -95,6 +95,25 @@
   transition: var(--transition-fast);
 }
 
+.search-date-input {
+  color-scheme: dark;
+}
+
+.search-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.8) sepia(100%) saturate(800%) hue-rotate(350deg);
+  opacity: 0.95;
+  font-size: 1.15rem;
+  padding: 2px;
+  border-radius: var(--radius-xs);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.search-date-input::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  filter: invert(1) brightness(1.2) drop-shadow(0 0 5px rgba(245, 158, 11, 0.8));
+}
+
 .search-date-input:focus,
 .search-select-input:focus {
   outline: none;

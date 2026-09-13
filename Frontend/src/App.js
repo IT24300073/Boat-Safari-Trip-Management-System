@@ -15,6 +15,7 @@ import Invoice from "./Pages/Invoice";
 import UserManagement from "./Pages/UserManagement";
 import MaintenanceReport from "./Pages/MaintenanceReport";
 import SafariScheduleManager from "./Pages/SafariScheduleManager";
+import MyBookings from "./Pages/MyBookings";
 
 function App() {
   return (
@@ -98,6 +99,14 @@ function App() {
             element={
               <PrivateRoute>
                 <UserManagement />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <PrivateRoute>
+                <MyBookings />
               </PrivateRoute>
             }
           />

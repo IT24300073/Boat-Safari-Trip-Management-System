@@ -47,6 +47,9 @@ function Navbar() {
                   <Link to="/booktrip" className={`nav-link ${isActive("/booktrip") ? "active" : ""}`}>
                     Book Trip
                   </Link>
+                  <Link to="/my-bookings" className={`nav-link ${isActive("/my-bookings") ? "active" : ""}`}>
+                    My Bookings
+                  </Link>
                   <Link to="/feedback" className={`nav-link ${isActive("/feedback") ? "active" : ""}`}>
                     Feedback
                   </Link>

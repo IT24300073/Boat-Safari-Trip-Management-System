@@ -108,3 +108,27 @@ code, pre, .mono-num, .price, .badge, .code-text, .metric-value, .timestamp {
   font-family: var(--font-mono);
 }
 
+/* Global Dark Mode Date & Time Pickers Visibility */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.85) sepia(100%) saturate(700%) hue-rotate(350deg);
+  opacity: 0.95;
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  filter: invert(1) brightness(1.2) drop-shadow(0 0 5px rgba(245, 158, 11, 0.8));
+}
+

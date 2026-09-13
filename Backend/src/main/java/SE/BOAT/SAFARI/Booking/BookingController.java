@@ -30,8 +30,20 @@ public class BookingController {
     }
 
     @GetMapping
-    public List<Booking> getBookings() {
-        return bookingService.getBookings(null, null, null, null);
+    public List<Booking> getBookings(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String venueName) {
+        if (email != null && !email.trim().isEmpty() && name == null && date == null && venueName == null) {
+            return bookingService.getBookingsByUserEmail(email);
+        }
+        return bookingService.getBookings(name, email, date, venueName);
+    }
+
+    @GetMapping("/user/{email}")
+    public List<Booking> getBookingsByUserEmail(@PathVariable String email) {
+        return bookingService.getBookingsByUserEmail(email);
     }
 
     @GetMapping("/{id}")
