@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import "../Styles/Report.css";
 import { useReactToPrint } from "react-to-print";
@@ -16,6 +16,7 @@ const Report = () => {
   const [analytics, setAnalytics] = useState(null);
 
   // Reconciliation State
+  const [reconPeriod, setReconPeriod] = useState("month");
   const [reconStartDate, setReconStartDate] = useState("");
   const [reconEndDate, setReconEndDate] = useState("");
   const [reconPaymentMethod, setReconPaymentMethod] = useState("ALL");
@@ -25,13 +26,13 @@ const Report = () => {
   const reportRef = useRef();
 
   // Fetch Operations Analytics
-  const fetchAnalytics = () => {
+  const fetchAnalytics = useCallback((activePeriod = period, sDate = startDate, eDate = endDate) => {
     setLoading(true);
     const params = new URLSearchParams();
-    params.append("period", period);
-    if (period === "custom") {
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+    params.append("period", activePeriod);
+    if (activePeriod === "custom") {
+      if (sDate) params.append("startDate", sDate);
+      if (eDate) params.append("endDate", eDate);
     }
 
     axios
@@ -41,15 +42,15 @@ const Report = () => {
       })
       .catch((err) => console.error("Error fetching analytics:", err))
       .finally(() => setLoading(false));
-  };
+  }, [period, startDate, endDate]);
 
   // Fetch Payment Reconciliation
-  const fetchReconciliation = () => {
+  const fetchReconciliation = useCallback((sDate = reconStartDate, eDate = reconEndDate, method = reconPaymentMethod) => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (reconStartDate) params.append("startDate", reconStartDate);
-    if (reconEndDate) params.append("endDate", reconEndDate);
-    if (reconPaymentMethod && reconPaymentMethod !== "ALL") params.append("paymentMethod", reconPaymentMethod);
+    if (sDate) params.append("startDate", sDate);
+    if (eDate) params.append("endDate", eDate);
+    if (method && method !== "ALL") params.append("paymentMethod", method);
 
     axios
       .get(`http://localhost:8080/api/reports/reconciliation?${params.toString()}`)
@@ -58,26 +59,72 @@ const Report = () => {
       })
       .catch((err) => console.error("Error fetching reconciliation:", err))
       .finally(() => setLoading(false));
-  };
+  }, [reconStartDate, reconEndDate, reconPaymentMethod]);
 
   useEffect(() => {
     if (viewMode === "OPERATIONS") {
-      fetchAnalytics();
+      fetchAnalytics(period, startDate, endDate);
     } else {
-      fetchReconciliation();
+      fetchReconciliation(reconStartDate, reconEndDate, reconPaymentMethod);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, period]);
 
   const handleCustomSearch = (e) => {
     e.preventDefault();
     if (period === "custom") {
-      fetchAnalytics();
+      fetchAnalytics("custom", startDate, endDate);
     }
   };
 
   const handleReconSearch = (e) => {
     e.preventDefault();
-    fetchReconciliation();
+    setReconPeriod("custom");
+    fetchReconciliation(reconStartDate, reconEndDate, reconPaymentMethod);
+  };
+
+  const handleReconPeriodChange = (selectedPeriod) => {
+    setReconPeriod(selectedPeriod);
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+
+    let s = "";
+    let e = "";
+
+    if (selectedPeriod === "today") {
+      s = `${y}-${m}-${d}`;
+      e = `${y}-${m}-${d}`;
+    } else if (selectedPeriod === "week") {
+      const day = now.getDay();
+      const diffToMon = now.getDate() - day + (day === 0 ? -6 : 1);
+      const mon = new Date(now);
+      mon.setDate(diffToMon);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      s = mon.toISOString().split("T")[0];
+      e = sun.toISOString().split("T")[0];
+    } else if (selectedPeriod === "month") {
+      s = `${y}-${m}-01`;
+      const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+      e = `${y}-${m}-${String(lastDay).padStart(2, "0")}`;
+    } else if (selectedPeriod === "year") {
+      s = `${y}-01-01`;
+      e = `${y}-12-31`;
+    } else if (selectedPeriod === "all") {
+      s = "2020-01-01";
+      e = `${y + 1}-12-31`;
+    }
+
+    setReconStartDate(s);
+    setReconEndDate(e);
+    fetchReconciliation(s, e, reconPaymentMethod);
+  };
+
+  const handleGatewayChange = (newMethod) => {
+    setReconPaymentMethod(newMethod);
+    fetchReconciliation(reconStartDate, reconEndDate, newMethod);
   };
 
   const handleDownloadCsv = () => {
@@ -134,8 +181,8 @@ const Report = () => {
           </h1>
           <p className="header-subtext">
             {viewMode === "OPERATIONS"
-              ? "Track bookings, revenue, passenger metrics, and trip cancellations over selected periods."
-              : "Audit payments, export transaction reconciliation CSV spreadsheets, and review payment methods."}
+              ? "Track confirmed bookings, gross revenue, passenger metrics, and trip cancellations in real time."
+              : "Audit settled funds, track voided transactions, export CSV reconciliations, and review gateway distributions."}
           </p>
         </div>
 
@@ -269,14 +316,18 @@ const Report = () => {
                   <span className="kpi-icon">💰</span>
                   <span className="kpi-title">Total Revenue</span>
                   <span className="kpi-value">LKR {Number(analytics.totalRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">Gross Income</span>
+                  <span className="kpi-subtext">Gross Confirmed Income</span>
                 </div>
 
                 <div className="kpi-card red">
                   <span className="kpi-icon">🚫</span>
                   <span className="kpi-title">Trip Cancellations</span>
                   <span className="kpi-value">{analytics.cancellationsCount || 0}</span>
-                  <span className="kpi-subtext">Weather / Maintenance</span>
+                  <span className="kpi-subtext">
+                    {analytics.cancelledRevenue > 0
+                      ? `LKR ${Number(analytics.cancelledRevenue).toLocaleString()} Voided`
+                      : "Weather / Maintenance"}
+                  </span>
                 </div>
 
                 <div className="kpi-card emerald">
@@ -318,7 +369,7 @@ const Report = () => {
 
               {/* Detailed Transactions Table */}
               <div className="report-table-section">
-                <h3>Detailed Booking Transactions ({analytics.totalBookings})</h3>
+                <h3>Detailed Booking Transactions ({analytics.bookings ? analytics.bookings.length : 0})</h3>
                 <table className="report-data-table">
                   <thead>
                     <tr>
@@ -330,30 +381,54 @@ const Report = () => {
                       <th>Children</th>
                       <th>Boat</th>
                       <th>Trip Package</th>
+                      <th>Status</th>
                       <th>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {!analytics.bookings || analytics.bookings.length === 0 ? (
                       <tr>
-                        <td colSpan="9" style={{ textAlign: "center", padding: "24px" }}>
+                        <td colSpan="10" style={{ textAlign: "center", padding: "24px" }}>
                           No bookings recorded for this selected period ({analytics.startDate} to {analytics.endDate}).
                         </td>
                       </tr>
                     ) : (
-                      analytics.bookings.map((b) => (
-                        <tr key={b.id}>
-                          <td>#{b.id}</td>
-                          <td><strong>{b.name}</strong></td>
-                          <td>{b.email}</td>
-                          <td>{b.safariDate}</td>
-                          <td>{b.adults}</td>
-                          <td>{b.children}</td>
-                          <td>{b.boat?.name || "N/A"}</td>
-                          <td>{b.trip?.name || "Standard Safari"}</td>
-                          <td><strong>LKR {Number(b.totalPrice).toLocaleString()}</strong></td>
-                        </tr>
-                      ))
+                      analytics.bookings.map((b) => {
+                        const isCancelled = b.bookingStatus === "CANCELLED";
+                        return (
+                          <tr key={b.id}>
+                            <td>#{b.id}</td>
+                            <td><strong>{b.name}</strong></td>
+                            <td>{b.email}</td>
+                            <td>{b.safariDate}</td>
+                            <td>{b.adults}</td>
+                            <td>{b.children}</td>
+                            <td>{b.boat?.name || "N/A"}</td>
+                            <td>{b.trip?.name || "Standard Safari"}</td>
+                            <td>
+                              {isCancelled ? (
+                                <div>
+                                  <span className="status-cancelled">🚫 Cancelled</span>
+                                  {b.cancelReason && (
+                                    <div className="cancel-reason-note">{b.cancelReason}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="status-confirmed">✓ Confirmed</span>
+                              )}
+                            </td>
+                            <td>
+                              {isCancelled ? (
+                                <span className="amount-void" title="Cancelled booking - excluded from gross revenue">
+                                  LKR {Number(b.totalPrice).toLocaleString()}
+                                </span>
+                              ) : (
+                                <strong>LKR {Number(b.totalPrice).toLocaleString()}</strong>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -371,12 +446,51 @@ const Report = () => {
       {viewMode === "RECONCILIATION" && (
         <>
           {/* Reconciliation Filter Bar */}
-          <form className="period-filter-container" onSubmit={handleReconSearch}>
+          <div className="period-filter-container">
             <div className="filter-label-group">
-              <span>💳 Audit Parameters:</span>
+              <span>💳 Quick Period:</span>
             </div>
 
-            <div className="recon-inputs-row">
+            <div className="period-pills-row">
+              <button
+                className={`period-pill ${reconPeriod === "today" ? "active" : ""}`}
+                onClick={() => handleReconPeriodChange("today")}
+              >
+                Today
+              </button>
+              <button
+                className={`period-pill ${reconPeriod === "week" ? "active" : ""}`}
+                onClick={() => handleReconPeriodChange("week")}
+              >
+                This Week
+              </button>
+              <button
+                className={`period-pill ${reconPeriod === "month" ? "active" : ""}`}
+                onClick={() => handleReconPeriodChange("month")}
+              >
+                This Month
+              </button>
+              <button
+                className={`period-pill ${reconPeriod === "year" ? "active" : ""}`}
+                onClick={() => handleReconPeriodChange("year")}
+              >
+                This Year
+              </button>
+              <button
+                className={`period-pill ${reconPeriod === "all" ? "active" : ""}`}
+                onClick={() => handleReconPeriodChange("all")}
+              >
+                All Time
+              </button>
+              <button
+                className={`period-pill ${reconPeriod === "custom" ? "active" : ""}`}
+                onClick={() => setReconPeriod("custom")}
+              >
+                Custom Range
+              </button>
+            </div>
+
+            <form className="recon-inputs-row" onSubmit={handleReconSearch} style={{ marginTop: "14px" }}>
               <div className="input-with-label">
                 <label>Start Date</label>
                 <input
@@ -401,7 +515,7 @@ const Report = () => {
                 <label>Payment Gateway</label>
                 <select
                   value={reconPaymentMethod}
-                  onChange={(e) => setReconPaymentMethod(e.target.value)}
+                  onChange={(e) => handleGatewayChange(e.target.value)}
                   className="select-filter-input"
                 >
                   <option value="ALL">All Payment Gateways</option>
@@ -414,8 +528,8 @@ const Report = () => {
               <button type="submit" className="btn-apply-range">
                 🔍 Filter Transactions
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
           {loading ? (
             <div className="report-loading-state">
@@ -443,29 +557,38 @@ const Report = () => {
                   <span className="kpi-icon">💳</span>
                   <span className="kpi-title">Credit / Debit Cards</span>
                   <span className="kpi-value">LKR {Number(reconciliation.cardRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.cardCount || 0} Transactions</span>
+                  <span className="kpi-subtext">{reconciliation.cardCount || 0} Settled Transactions</span>
                 </div>
 
                 <div className="kpi-card cyan">
                   <span className="kpi-icon">🅿️</span>
                   <span className="kpi-title">PayPal Digital Wallet</span>
                   <span className="kpi-value">LKR {Number(reconciliation.paypalRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.paypalCount || 0} Transactions</span>
+                  <span className="kpi-subtext">{reconciliation.paypalCount || 0} Settled Transactions</span>
                 </div>
 
                 <div className="kpi-card emerald">
                   <span className="kpi-icon">💵</span>
                   <span className="kpi-title">Cash On Arrival</span>
                   <span className="kpi-value">LKR {Number(reconciliation.cashRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.cashCount || 0} Transactions</span>
+                  <span className="kpi-subtext">{reconciliation.cashCount || 0} Settled Transactions</span>
                 </div>
 
                 <div className="kpi-card amber">
                   <span className="kpi-icon">🏦</span>
-                  <span className="kpi-title">Total Reconciled Funds</span>
+                  <span className="kpi-title">Total Settled Funds</span>
                   <span className="kpi-value">LKR {Number(reconciliation.totalReconciledRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.totalTransactionsCount || 0} Total Settled</span>
+                  <span className="kpi-subtext">{reconciliation.totalSettledCount || 0} Cleared Funds</span>
                 </div>
+
+                {reconciliation.cancelledRevenue > 0 && (
+                  <div className="kpi-card red">
+                    <span className="kpi-icon">🚫</span>
+                    <span className="kpi-title">Voided / Cancelled</span>
+                    <span className="kpi-value">LKR {Number(reconciliation.cancelledRevenue || 0).toLocaleString()}</span>
+                    <span className="kpi-subtext">{reconciliation.cancelledCount || 0} Void Transactions</span>
+                  </div>
+                )}
               </div>
 
               {/* Transaction Ledger Table */}
@@ -492,26 +615,48 @@ const Report = () => {
                         </td>
                       </tr>
                     ) : (
-                      reconciliation.transactions.map((t) => (
-                        <tr key={t.id}>
-                          <td>
-                            <span className="txn-ref-badge">
-                              {t.transactionReference || `TXN-${t.id}84920`}
-                            </span>
-                          </td>
-                          <td>#{t.id}</td>
-                          <td><strong>{t.name}</strong></td>
-                          <td>{t.email}</td>
-                          <td>{t.safariDate}</td>
-                          <td>
-                            <span className="gateway-badge">
-                              {t.paymentMethod ? t.paymentMethod.toUpperCase() : "CARD"}
-                            </span>
-                          </td>
-                          <td><span className="status-confirmed">✓ Settled</span></td>
-                          <td><strong>LKR {Number(t.totalPrice).toLocaleString()}</strong></td>
-                        </tr>
-                      ))
+                      reconciliation.transactions.map((t) => {
+                        const isCancelled = t.bookingStatus === "CANCELLED" || t.paymentStatus === "REFUNDED";
+                        return (
+                          <tr key={t.id}>
+                            <td>
+                              <span className="txn-ref-badge">
+                                {t.transactionReference || `TXN-${t.id}84920`}
+                              </span>
+                            </td>
+                            <td>#{t.id}</td>
+                            <td><strong>{t.name}</strong></td>
+                            <td>{t.email}</td>
+                            <td>{t.safariDate}</td>
+                            <td>
+                              <span className="gateway-badge">
+                                {t.paymentMethod ? t.paymentMethod.toUpperCase() : "CARD"}
+                              </span>
+                            </td>
+                            <td>
+                              {isCancelled ? (
+                                <div>
+                                  <span className="status-cancelled">❌ Cancelled / Void</span>
+                                  {t.cancelReason && (
+                                    <div className="cancel-reason-note">{t.cancelReason}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="status-confirmed">✓ Settled</span>
+                              )}
+                            </td>
+                            <td>
+                              {isCancelled ? (
+                                <span className="amount-void" title="Void transaction - excluded from settled funds">
+                                  LKR {Number(t.totalPrice).toLocaleString()}
+                                </span>
+                              ) : (
+                                <strong>LKR {Number(t.totalPrice).toLocaleString()}</strong>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

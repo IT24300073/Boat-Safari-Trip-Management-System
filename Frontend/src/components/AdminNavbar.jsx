@@ -64,48 +64,6 @@ function AdminNavbar({ activeTab, setActiveTab }) {
         </div>
 
         <div className="admin-user-controls">
-          <Link
-            to="/schedule"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "7px 14px",
-              background: "rgba(16, 185, 129, 0.12)",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
-              color: "#34d399",
-              borderRadius: "6px",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              textDecoration: "none",
-              transition: "all 0.2s ease"
-            }}
-            title="Open Master Safari Schedule"
-          >
-            🧭 Master Schedule
-          </Link>
-
-          <Link
-            to="/booktrip"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "7px 14px",
-              background: "rgba(56, 189, 248, 0.12)",
-              border: "1px solid rgba(56, 189, 248, 0.3)",
-              color: "#38bdf8",
-              borderRadius: "6px",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              textDecoration: "none",
-              transition: "all 0.2s ease"
-            }}
-            title="Open Customer Safari Portal"
-          >
-            🚤 Main Site
-          </Link>
-
           {user && (
             <span className="admin-user-badge">
               ⚡ Logged as: <strong>{user.name || user.email}</strong>

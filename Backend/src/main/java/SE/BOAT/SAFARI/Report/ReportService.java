@@ -7,7 +7,9 @@ import SE.BOAT.SAFARI.Schedule.SafariScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,13 +25,31 @@ public class ReportService {
     @Autowired
     private SafariScheduleRepository safariScheduleRepository;
 
+    private void syncScheduleStatus(Booking booking) {
+        if (booking != null && booking.getScheduleId() != null && safariScheduleRepository != null) {
+            safariScheduleRepository.findById(booking.getScheduleId()).ifPresent(sched -> {
+                if ("CANCELLED".equalsIgnoreCase(sched.getStatus())) {
+                    booking.setBookingStatus("CANCELLED");
+                    if (booking.getCancelReason() == null || booking.getCancelReason().trim().isEmpty()) {
+                        booking.setCancelReason(sched.getCancelReason() != null ? sched.getCancelReason() : "Cancelled by Safari Operations");
+                    }
+                }
+            });
+        }
+    }
+
     public Report generateAndSaveReport() {
         List<Booking> bookings = bookingRepository.findAll();
+        bookings.forEach(this::syncScheduleStatus);
 
-        int totalBookings = bookings.size();
-        int totalAdults = bookings.stream().mapToInt(Booking::getAdults).sum();
-        int totalChildren = bookings.stream().mapToInt(Booking::getChildren).sum();
-        double totalRevenue = bookings.stream().mapToDouble(Booking::getTotalPrice).sum();
+        List<Booking> confirmedBookings = bookings.stream()
+                .filter(b -> !"CANCELLED".equalsIgnoreCase(b.getBookingStatus()))
+                .collect(Collectors.toList());
+
+        int totalBookings = confirmedBookings.size();
+        int totalAdults = confirmedBookings.stream().mapToInt(Booking::getAdults).sum();
+        int totalChildren = confirmedBookings.stream().mapToInt(Booking::getChildren).sum();
+        double totalRevenue = confirmedBookings.stream().mapToDouble(Booking::getTotalPrice).sum();
 
         Report report = new Report(totalBookings, totalAdults, totalChildren, totalRevenue);
         return reportRepository.save(report);
@@ -47,16 +67,16 @@ public class ReportService {
                     end = today;
                     break;
                 case "week":
-                    start = today.minusDays(7);
-                    end = today;
+                    start = today.with(DayOfWeek.MONDAY);
+                    end = today.with(DayOfWeek.SUNDAY);
                     break;
                 case "month":
                     start = today.withDayOfMonth(1);
-                    end = today;
+                    end = today.with(TemporalAdjusters.lastDayOfMonth());
                     break;
                 case "year":
                     start = today.withDayOfYear(1);
-                    end = today;
+                    end = today.with(TemporalAdjusters.lastDayOfYear());
                     break;
                 case "custom":
                     if (startDateStr != null && !startDateStr.isEmpty()) start = LocalDate.parse(startDateStr);
@@ -64,7 +84,7 @@ public class ReportService {
                     break;
                 default:
                     start = today.withDayOfMonth(1);
-                    end = today;
+                    end = today.with(TemporalAdjusters.lastDayOfMonth());
                     break;
             }
         } else if (startDateStr != null && !startDateStr.isEmpty() && endDateStr != null && !endDateStr.isEmpty()) {
@@ -72,24 +92,34 @@ public class ReportService {
             end = LocalDate.parse(endDateStr);
         } else {
             start = today.withDayOfMonth(1);
-            end = today;
+            end = today.with(TemporalAdjusters.lastDayOfMonth());
         }
 
         final LocalDate finalStart = start;
         final LocalDate finalEnd = end;
 
         List<Booking> allBookings = bookingRepository.findAll();
+        allBookings.forEach(this::syncScheduleStatus);
+
         List<Booking> filteredBookings = allBookings.stream()
                 .filter(b -> b.getSafariDate() != null &&
                         !b.getSafariDate().isBefore(finalStart) &&
                         !b.getSafariDate().isAfter(finalEnd))
                 .collect(Collectors.toList());
 
-        int totalBookings = filteredBookings.size();
-        int totalAdults = filteredBookings.stream().mapToInt(Booking::getAdults).sum();
-        int totalChildren = filteredBookings.stream().mapToInt(Booking::getChildren).sum();
+        List<Booking> confirmedBookings = filteredBookings.stream()
+                .filter(b -> !"CANCELLED".equalsIgnoreCase(b.getBookingStatus()))
+                .collect(Collectors.toList());
+
+        List<Booking> cancelledBookings = filteredBookings.stream()
+                .filter(b -> "CANCELLED".equalsIgnoreCase(b.getBookingStatus()))
+                .collect(Collectors.toList());
+
+        int totalBookings = confirmedBookings.size();
+        int totalAdults = confirmedBookings.stream().mapToInt(Booking::getAdults).sum();
+        int totalChildren = confirmedBookings.stream().mapToInt(Booking::getChildren).sum();
         int totalPassengers = totalAdults + totalChildren;
-        double totalRevenue = filteredBookings.stream().mapToDouble(Booking::getTotalPrice).sum();
+        double totalRevenue = confirmedBookings.stream().mapToDouble(Booking::getTotalPrice).sum();
 
         List<SafariSchedule> allSchedules = safariScheduleRepository.findAll();
         List<SafariSchedule> filteredSchedules = allSchedules.stream()
@@ -99,13 +129,17 @@ public class ReportService {
                 .collect(Collectors.toList());
 
         long totalSchedules = filteredSchedules.size();
-        long cancelledSchedulesCount = filteredSchedules.stream()
+        long standaloneCancelledSchedules = filteredSchedules.stream()
                 .filter(s -> "CANCELLED".equalsIgnoreCase(s.getStatus()))
+                .filter(s -> filteredBookings.stream().noneMatch(b -> s.getId().equals(b.getScheduleId())))
                 .count();
 
-        // Breakdown by Safari Trip Package
+        int totalCancellations = cancelledBookings.size() + (int) standaloneCancelledSchedules;
+        double cancelledRevenue = cancelledBookings.stream().mapToDouble(Booking::getTotalPrice).sum();
+
+        // Breakdown by Safari Trip Package (confirmed bookings)
         Map<String, Map<String, Object>> packageBreakdown = new HashMap<>();
-        for (Booking b : filteredBookings) {
+        for (Booking b : confirmedBookings) {
             String tripName = (b.getTrip() != null && b.getTrip().getName() != null) ? b.getTrip().getName() : "Standard Safari";
             packageBreakdown.putIfAbsent(tripName, new HashMap<>());
             Map<String, Object> metrics = packageBreakdown.get(tripName);
@@ -124,7 +158,9 @@ public class ReportService {
         result.put("period", period != null ? period : "month");
         result.put("totalBookings", totalBookings);
         result.put("totalRevenue", totalRevenue);
-        result.put("cancellationsCount", cancelledSchedulesCount);
+        result.put("cancellationsCount", totalCancellations);
+        result.put("cancelledBookingsCount", cancelledBookings.size());
+        result.put("cancelledRevenue", cancelledRevenue);
         result.put("totalAdults", totalAdults);
         result.put("totalChildren", totalChildren);
         result.put("totalPassengers", totalPassengers);
@@ -137,13 +173,15 @@ public class ReportService {
     public Map<String, Object> getPaymentReconciliation(String startDateStr, String endDateStr, String paymentMethod) {
         LocalDate today = LocalDate.now();
         LocalDate start = (startDateStr != null && !startDateStr.isEmpty()) ? LocalDate.parse(startDateStr) : today.withDayOfMonth(1);
-        LocalDate end = (endDateStr != null && !endDateStr.isEmpty()) ? LocalDate.parse(endDateStr) : today;
+        LocalDate end = (endDateStr != null && !endDateStr.isEmpty()) ? LocalDate.parse(endDateStr) : today.with(TemporalAdjusters.lastDayOfMonth());
 
         final LocalDate finalStart = start;
         final LocalDate finalEnd = end;
         final String targetMethod = (paymentMethod != null && !paymentMethod.isEmpty() && !"ALL".equalsIgnoreCase(paymentMethod)) ? paymentMethod.toUpperCase() : null;
 
         List<Booking> allBookings = bookingRepository.findAll();
+        allBookings.forEach(this::syncScheduleStatus);
+
         List<Booking> filtered = allBookings.stream()
                 .filter(b -> b.getSafariDate() != null &&
                         !b.getSafariDate().isBefore(finalStart) &&
@@ -158,7 +196,17 @@ public class ReportService {
         double cashRevenue = 0.0;
         int cashCount = 0;
 
+        double cancelledRevenue = 0.0;
+        int cancelledCount = 0;
+
         for (Booking b : filtered) {
+            boolean isCancelled = "CANCELLED".equalsIgnoreCase(b.getBookingStatus()) || "REFUNDED".equalsIgnoreCase(b.getPaymentStatus());
+            if (isCancelled) {
+                cancelledRevenue += b.getTotalPrice();
+                cancelledCount++;
+                continue;
+            }
+
             String method = b.getPaymentMethod() != null ? b.getPaymentMethod().toUpperCase() : "CARD";
             if (method.contains("PAYPAL")) {
                 paypalRevenue += b.getTotalPrice();
@@ -173,6 +221,7 @@ public class ReportService {
         }
 
         double totalReconciledRevenue = cardRevenue + paypalRevenue + cashRevenue;
+        int totalSettledCount = cardCount + paypalCount + cashCount;
 
         Map<String, Object> response = new HashMap<>();
         response.put("startDate", finalStart.toString());
@@ -185,6 +234,9 @@ public class ReportService {
         response.put("cashRevenue", cashRevenue);
         response.put("cashCount", cashCount);
         response.put("totalReconciledRevenue", totalReconciledRevenue);
+        response.put("totalSettledCount", totalSettledCount);
+        response.put("cancelledRevenue", cancelledRevenue);
+        response.put("cancelledCount", cancelledCount);
         response.put("totalTransactionsCount", filtered.size());
         response.put("transactions", filtered);
         return response;
@@ -196,13 +248,16 @@ public class ReportService {
         List<Booking> transactions = (List<Booking>) data.get("transactions");
 
         StringBuilder csv = new StringBuilder();
-        csv.append("Transaction Ref,Invoice ID,Customer Name,Email Address,Safari Date,Payment Method,Payment Status,Total Amount (LKR)\n");
+        csv.append("Transaction Ref,Invoice ID,Customer Name,Email Address,Safari Date,Payment Method,Booking Status,Settlement Status,Total Amount (LKR),Cancellation / Notes\n");
 
         if (transactions != null) {
             for (Booking b : transactions) {
                 String txnRef = b.getTransactionReference() != null ? b.getTransactionReference() : ("TXN-" + b.getId() + "84920");
                 String method = b.getPaymentMethod() != null ? b.getPaymentMethod().toUpperCase() : "CARD";
-                String status = b.getPaymentStatus() != null ? b.getPaymentStatus() : "PAID_CONFIRMED";
+                String bookingStatus = b.getBookingStatus() != null ? b.getBookingStatus() : "CONFIRMED";
+                boolean isCancelled = "CANCELLED".equalsIgnoreCase(bookingStatus) || "REFUNDED".equalsIgnoreCase(b.getPaymentStatus());
+                String settlementStatus = isCancelled ? "VOID / CANCELLED" : "SETTLED";
+                String notes = b.getCancelReason() != null ? b.getCancelReason() : "";
 
                 csv.append(escapeCsv(txnRef)).append(",")
                    .append(b.getId()).append(",")
@@ -210,8 +265,10 @@ public class ReportService {
                    .append(escapeCsv(b.getEmail())).append(",")
                    .append(b.getSafariDate()).append(",")
                    .append(escapeCsv(method)).append(",")
-                   .append(escapeCsv(status)).append(",")
-                   .append(String.format(Locale.US, "%.2f", b.getTotalPrice())).append("\n");
+                   .append(escapeCsv(bookingStatus)).append(",")
+                   .append(escapeCsv(settlementStatus)).append(",")
+                   .append(String.format(Locale.US, "%.2f", b.getTotalPrice())).append(",")
+                   .append(escapeCsv(notes)).append("\n");
             }
         }
 

@@ -780,7 +780,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
             </table>
           )}
 
-          {/* Form */}
+          {/* Admin Booking Reservation Form (Temporarily Commented Out)
           <div className="booking-form">
             <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
               <h3 style={{ margin: 0 }}>
@@ -963,7 +963,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               </button>
             )}
 
-            {/* Live Calculation Formula Breakdown */}
+            // Live Calculation Formula Breakdown
             {bookingForm.totalPrice && (
               <div className="price-breakdown-pill">
                 <span>
@@ -972,6 +972,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               </div>
             )}
           </div>
+          */}
         </section>
       )}
 
