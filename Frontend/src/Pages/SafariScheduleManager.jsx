@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import "../Styles/SafariScheduleManager.css";
+
+const SLOT_ORDER = {
+  "08:00 AM - 10:00 AM": 1,
+  "10:30 AM - 12:30 PM": 2,
+  "01:00 PM - 03:00 PM": 3,
+  "03:30 PM - 05:30 PM": 4,
+};
 
 function SafariScheduleManager() {
   const [schedules, setSchedules] = useState([]);
@@ -10,6 +17,11 @@ function SafariScheduleManager() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination & Sorting State
+  const [sortOrder, setSortOrder] = useState("asc"); // "asc" for earliest first, "desc" for latest first
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
 
   const [formData, setFormData] = useState({
     tripName: "",
@@ -97,6 +109,65 @@ function SafariScheduleManager() {
     "👤 Customer Request / Reschedule",
     "✏️ Custom Reason",
   ];
+
+  // Sort and filter schedules according to date (with operational time slot tie-breaker)
+  const sortedAndFilteredSchedules = useMemo(() => {
+    const filtered = schedules.filter((s) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        s.tripName?.toLowerCase().includes(q) ||
+        s.boatName?.toLowerCase().includes(q) ||
+        s.guideName?.toLowerCase().includes(q) ||
+        s.scheduleDate?.toLowerCase().includes(q) ||
+        s.timeSlot?.toLowerCase().includes(q) ||
+        s.status?.toLowerCase().includes(q) ||
+        String(s.id).includes(q)
+      );
+    });
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.scheduleDate || "";
+      const dateB = b.scheduleDate || "";
+      const dateComp = dateA.localeCompare(dateB);
+      if (dateComp !== 0) {
+        return sortOrder === "asc" ? dateComp : -dateComp;
+      }
+      const slotA = SLOT_ORDER[a.timeSlot] || 99;
+      const slotB = SLOT_ORDER[b.timeSlot] || 99;
+      return slotA - slotB;
+    });
+  }, [schedules, searchQuery, sortOrder]);
+
+  // Reset to first page when search, sort, or recordsPerPage changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortOrder, recordsPerPage]);
+
+  const totalRecords = sortedAndFilteredSchedules.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
+  const paginatedSchedules = sortedAndFilteredSchedules.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const handleEdit = (schedule) => {
     setEditingId(schedule.id);
@@ -436,20 +507,37 @@ function SafariScheduleManager() {
                   </button>
                 )}
               </div>
+
+              {/* Date Sort Order Toggle */}
+              <button
+                type="button"
+                className="btn-sort-toggle"
+                onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                title="Click to toggle sorting order by date"
+              >
+                <span className="sort-label">📅 Date:</span>
+                <span className="sort-val">
+                  {sortOrder === "asc" ? "Earliest First ⬆️" : "Latest First ⬇️"}
+                </span>
+              </button>
+
+              {/* Records Per Page Dropdown */}
+              <div className="page-size-selector">
+                <label htmlFor="recordsPerPage">Show:</label>
+                <select
+                  id="recordsPerPage"
+                  value={recordsPerPage}
+                  onChange={(e) => setRecordsPerPage(Number(e.target.value))}
+                  className="page-size-dropdown"
+                >
+                  <option value={10}>10 records</option>
+                  <option value={20}>20 records</option>
+                  <option value={50}>50 records</option>
+                </select>
+              </div>
+
               <span className="records-count-badge">
-                {schedules.filter((s) => {
-                  if (!searchQuery.trim()) return true;
-                  const q = searchQuery.toLowerCase();
-                  return (
-                    s.tripName?.toLowerCase().includes(q) ||
-                    s.boatName?.toLowerCase().includes(q) ||
-                    s.guideName?.toLowerCase().includes(q) ||
-                    s.scheduleDate?.toLowerCase().includes(q) ||
-                    s.timeSlot?.toLowerCase().includes(q) ||
-                    s.status?.toLowerCase().includes(q) ||
-                    String(s.id).includes(q)
-                  );
-                }).length} {schedules.length === 1 ? "Record" : "Records"}
+                {totalRecords} {totalRecords === 1 ? "Record" : "Records"}
               </span>
             </div>
           </div>
@@ -466,7 +554,16 @@ function SafariScheduleManager() {
                   <tr>
                     <th className="col-id">ID</th>
                     <th className="col-trip">Trip Name</th>
-                    <th className="col-date">Date</th>
+                    <th
+                      className="col-date sortable"
+                      onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                      title="Click to toggle date sort order"
+                    >
+                      <div className="th-sort-wrapper">
+                        <span>Date</span>
+                        <span className="sort-arrow">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                      </div>
+                    </th>
                     <th className="col-time">Time Slot</th>
                     <th className="col-boat">Assigned Boat</th>
                     <th className="col-guide">Assigned Guide</th>
@@ -475,21 +572,14 @@ function SafariScheduleManager() {
                   </tr>
                 </thead>
                 <tbody>
-                  {schedules
-                    .filter((s) => {
-                      if (!searchQuery.trim()) return true;
-                      const q = searchQuery.toLowerCase();
-                      return (
-                        s.tripName?.toLowerCase().includes(q) ||
-                        s.boatName?.toLowerCase().includes(q) ||
-                        s.guideName?.toLowerCase().includes(q) ||
-                        s.scheduleDate?.toLowerCase().includes(q) ||
-                        s.timeSlot?.toLowerCase().includes(q) ||
-                        s.status?.toLowerCase().includes(q) ||
-                        String(s.id).includes(q)
-                      );
-                    })
-                    .map((s) => (
+                  {paginatedSchedules.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="no-matches-cell">
+                        🔍 No safari schedules match "{searchQuery}". Clear filter to view all schedules.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedSchedules.map((s) => (
                       <tr key={s.id} className={`schedule-row ${s.status?.toLowerCase()}`}>
                         <td className="col-id">
                           <span className="id-tag">#{s.id}</span>
@@ -564,9 +654,83 @@ function SafariScheduleManager() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                  )}
                 </tbody>
               </table>
+
+              {/* Pagination Bar */}
+              {totalRecords > 0 && (
+                <div className="pagination-bar">
+                  <div className="pagination-info">
+                    Showing{" "}
+                    <strong>{(currentPage - 1) * recordsPerPage + 1}</strong>{" "}
+                    to{" "}
+                    <strong>{Math.min(currentPage * recordsPerPage, totalRecords)}</strong>{" "}
+                    of <strong>{totalRecords}</strong> records
+                    <span className="pagination-page-tag">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+
+                  <div className="pagination-buttons">
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      title="First Page"
+                    >
+                      ⏮ First
+                    </button>
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      title="Previous Page"
+                    >
+                      ◀ Prev
+                    </button>
+
+                    {getPageNumbers().map((page, idx) =>
+                      page === "..." ? (
+                        <span key={`ellipsis-${idx}`} className="page-ellipsis">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          type="button"
+                          className={`page-num-btn ${currentPage === page ? "active" : ""}`}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      title="Next Page"
+                    >
+                      Next ▶
+                    </button>
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      title="Last Page"
+                    >
+                      Last ⏭
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

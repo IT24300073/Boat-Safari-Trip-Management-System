@@ -169,11 +169,10 @@ function BookTrip() {
               className="search-select-input"
             >
               <option value="ALL">All Time Slots (Anytime)</option>
-              <option value="MORNING">Morning (06:00 AM - 10:30 AM)</option>
-              <option value="MIDDAY">Midday (11:00 AM - 01:30 PM)</option>
-              <option value="AFTERNOON">Afternoon (02:00 PM - 04:00 PM)</option>
-              <option value="SUNSET">Sunset Cruise (04:30 PM - 06:30 PM)</option>
-              <option value="NIGHT">Night Safari (07:00 PM - 09:00 PM)</option>
+              <option value="08:00 AM - 10:00 AM">08:00 AM - 10:00 AM (Morning Safari)</option>
+              <option value="10:30 AM - 12:30 PM">10:30 AM - 12:30 PM (Midday Cruise)</option>
+              <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM (Afternoon Tour)</option>
+              <option value="03:30 PM - 05:30 PM">03:30 PM - 05:30 PM (Sunset Expedition)</option>
             </select>
           </div>
 

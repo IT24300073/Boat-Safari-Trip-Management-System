@@ -28,6 +28,9 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
   const [trips, setTrips] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [cardError, setCardError] = useState("");
+  const [dateSchedules, setDateSchedules] = useState([]);
+  const [loadingDateSchedules, setLoadingDateSchedules] = useState(false);
+  const [dateChecked, setDateChecked] = useState(false);
 
   // Auto-fill logged in user details
   useEffect(() => {
@@ -67,19 +70,78 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
       .catch((err) => console.error("Error fetching trips:", err));
   }, [initialBoatId, scheduledSlot]);
 
+  // Real-time schedule discovery when user selects date (when no locked slot is passed)
+  useEffect(() => {
+    if (scheduledSlot) return;
+    if (!formData.date) return;
+
+    setLoadingDateSchedules(true);
+    fetch(`http://localhost:8080/api/schedules/search?date=${formData.date}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setLoadingDateSchedules(false);
+        setDateChecked(true);
+
+        const activeSlots = (data || []).filter(
+          (s) => s.status !== "CANCELLED" && s.seatStatus !== "FULL" && s.seatStatus !== "MAINTENANCE"
+        );
+
+        const tripMatches = trip?.name
+          ? activeSlots.filter(
+              (s) => s.tripName?.toLowerCase().trim() === trip.name.toLowerCase().trim()
+            )
+          : activeSlots;
+
+        setDateSchedules(tripMatches);
+
+        if (tripMatches.length > 0) {
+          const match = tripMatches.find((s) => s.timeSlot === formData.timeSlot) || tripMatches[0];
+          setFormData((prev) => ({
+            ...prev,
+            scheduleId: match.id,
+            timeSlot: match.timeSlot,
+            boatId: String(match.boatId),
+          }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            scheduleId: null,
+          }));
+        }
+      })
+      .catch((err) => {
+        console.error("Error checking date schedules:", err);
+        setLoadingDateSchedules(false);
+        setDateChecked(true);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.date, trip, scheduledSlot]);
+
+  // Selected schedule slot object: either pre-passed scheduledSlot or matched from date schedules
+  const currentSlot =
+    scheduledSlot ||
+    dateSchedules.find(
+      (s) => s.id === formData.scheduleId || s.timeSlot === formData.timeSlot
+    ) ||
+    null;
+
+  const isDateUnscheduled =
+    !scheduledSlot && dateChecked && !loadingDateSchedules && dateSchedules.length === 0;
+
   const selectedBoat =
     boats.find((b) => b.id === Number(formData.boatId)) ||
-    (scheduledSlot
+    (currentSlot
       ? {
-          id: scheduledSlot.boatId,
-          name: scheduledSlot.boatName,
+          id: currentSlot.boatId,
+          name: currentSlot.boatName,
           boatType: "Safari Vessel",
-          capacity: scheduledSlot.totalCapacity || 10,
+          capacity: currentSlot.totalCapacity || 10,
           price: 0,
         }
       : boats[0] || null);
 
-  const boatCapacity = selectedBoat ? selectedBoat.capacity : (scheduledSlot?.totalCapacity || 10);
+  const boatCapacity =
+    currentSlot?.totalCapacity || (selectedBoat ? selectedBoat.capacity : 10);
 
   const totalPrice =
     formData.adults * (trip?.adultPrice || 0) +
@@ -147,6 +209,16 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
       return;
     }
 
+    // Safari date change - reset scheduleId so useEffect verifies new date
+    if (name === "date") {
+      setFormData((prev) => ({
+        ...prev,
+        date: value,
+        scheduleId: null,
+      }));
+      return;
+    }
+
     // CVV security code (digits only, max 4)
     if (name === "cvv") {
       const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
@@ -165,9 +237,10 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
           ? newValue + formData.children
           : formData.adults + newValue;
 
-      if (total > boatCapacity) {
+      const seatLimit = currentSlot?.remainingSeats !== undefined ? currentSlot.remainingSeats : boatCapacity;
+      if (total > seatLimit) {
         setErrorMessage(
-          `Total passengers (${total}) exceed boat capacity (${boatCapacity})`
+          `Total passengers (${total}) exceed available seats (${seatLimit})`
         );
       } else {
         setErrorMessage("");
@@ -190,6 +263,10 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
       return "Safari date must be today or a future date.";
     }
 
+    if (isDateUnscheduled) {
+      return `Safari operations has not scheduled departures for "${trip?.name || "this trip"}" on ${formData.date}. Please select an active scheduled date.`;
+    }
+
     if (!selectedBoat) {
       return "Please select a boat for your trip.";
     }
@@ -197,10 +274,11 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
     if (formData.adults < 1) return "At least 1 adult passenger is required.";
     if (formData.children < 0) return "Number of children cannot be negative.";
 
-    if (formData.adults + formData.children > boatCapacity) {
+    const seatLimit = currentSlot?.remainingSeats !== undefined ? currentSlot.remainingSeats : boatCapacity;
+    if (formData.adults + formData.children > seatLimit) {
       return `Total passengers (${
         formData.adults + formData.children
-      }) cannot exceed boat capacity (${boatCapacity}).`;
+      }) cannot exceed available seats (${seatLimit}) for this departure slot.`;
     }
 
     if (
@@ -351,13 +429,21 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
             <div className="form-row dual">
               <div className="form-field">
                 <label>Safari Date *</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
+                {scheduledSlot ? (
+                  <div className="locked-time-slot-pill">
+                    <span>📅 <strong>{scheduledSlot.scheduleDate}</strong></span>
+                    <span className="slot-locked-tag">Confirmed Date</span>
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    name="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                  />
+                )}
               </div>
 
               <div className="form-field">
@@ -367,59 +453,127 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
                     <span>⏰ <strong>{scheduledSlot.timeSlot}</strong></span>
                     <span className="slot-locked-tag">Confirmed Slot</span>
                   </div>
-                ) : (
+                ) : loadingDateSchedules ? (
+                  <div className="slot-loading-spinner">
+                    <span className="spinner-small"></span>
+                    <span>Checking departures...</span>
+                  </div>
+                ) : dateSchedules.length > 0 ? (
                   <select
                     name="timeSlot"
                     value={formData.timeSlot}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const selected = dateSchedules.find((s) => s.timeSlot === e.target.value);
+                      if (selected) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          timeSlot: selected.timeSlot,
+                          scheduleId: selected.id,
+                          boatId: String(selected.boatId),
+                        }));
+                      }
+                    }}
                     required
                   >
-                    <option value="08:00 AM - 10:00 AM">08:00 AM - 10:00 AM (Morning Safari)</option>
-                    <option value="10:30 AM - 12:30 PM">10:30 AM - 12:30 PM (Midday Cruise)</option>
-                    <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM (Afternoon Tour)</option>
-                    <option value="03:30 PM - 05:30 PM">03:30 PM - 05:30 PM (Sunset Expedition)</option>
+                    {dateSchedules.map((s) => (
+                      <option key={s.id} value={s.timeSlot}>
+                        {s.timeSlot} ({s.remainingSeats} seats left • {s.boatName})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select disabled className="time-slot-disabled-select">
+                    <option>No departures scheduled on {formData.date}</option>
                   </select>
                 )}
               </div>
             </div>
 
+            {/* Unscheduled Date Warning Banner */}
+            {isDateUnscheduled && (
+              <div className="unscheduled-date-banner">
+                <div className="unscheduled-header">
+                  <span className="unscheduled-icon">⚠️</span>
+                  <strong>No Safari Expeditions Scheduled for {formData.date}</strong>
+                </div>
+                <p className="unscheduled-desc">
+                  Safari operations has not dispatched or scheduled departures for{" "}
+                  <em>"{trip?.name || "this package"}"</em> on <strong>{formData.date}</strong>.
+                  Please select an active scheduled operational date (e.g. <strong>Sept 14 – Sept 20, 2026</strong>)
+                  or choose a departure from the Book Trip schedule list.
+                </p>
+                <div className="unscheduled-actions">
+                  <button
+                    type="button"
+                    className="btn-browse-active-slots"
+                    onClick={() => setShowBooking(false)}
+                  >
+                    🔍 View Scheduled Departures Catalog
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Expedition Vessel Allocation (Managed by Operations) */}
-            <div className="vessel-assignment-banner">
-              <div className="vessel-badge-row">
-                <span className="vessel-tag">
-                  {scheduledSlot ? "⛵ ASSIGNED EXPEDITION VESSEL" : "⛵ FLEET DISPATCH ALLOCATION"}
-                </span>
-                <span className="operations-pill">Managed by Safari Operations</span>
+            {isDateUnscheduled ? (
+              <div className="vessel-assignment-banner unassigned">
+                <div className="vessel-badge-row">
+                  <span className="vessel-tag alert-tag">🚫 NO VESSEL ALLOCATED</span>
+                  <span className="operations-pill">Awaiting Dispatch Schedule</span>
+                </div>
+                <p className="vessel-dispatch-note">
+                  No boat or certified captain has been dispatched by Safari Operations for this date yet. Please pick an active scheduled date to secure your vessel.
+                </p>
               </div>
-
-              <div className="vessel-details-grid">
-                <div className="vessel-main-info">
-                  <span className="vessel-name-txt">
-                    {selectedBoat ? selectedBoat.name : (scheduledSlot?.boatName || "Safari Expedition Boat")}
+            ) : (
+              <div className="vessel-assignment-banner">
+                <div className="vessel-badge-row">
+                  <span className="vessel-tag">
+                    {currentSlot ? "⛵ ASSIGNED EXPEDITION VESSEL" : "⛵ FLEET DISPATCH ALLOCATION"}
                   </span>
-                  <span className="vessel-type-txt">
-                    {selectedBoat?.boatType ? `${selectedBoat.boatType} Class` : "Certified River Class"}
-                  </span>
+                  <span className="operations-pill">Managed by Safari Operations</span>
                 </div>
 
-                <div className="vessel-attributes">
-                  <span className="attr-item">👥 Vessel Capacity: <strong>{boatCapacity} Passengers</strong></span>
-                  {scheduledSlot?.guideName && (
-                    <span className="attr-item">🧭 Certified Captain: <strong>{scheduledSlot.guideName}</strong></span>
-                  )}
-                  {scheduledSlot?.timeSlot && (
-                    <span className="attr-item">⏰ Departure Slot: <strong>{scheduledSlot.timeSlot}</strong></span>
-                  )}
-                  <span className="attr-item">🛡️ Life jackets & safety gear inspected</span>
-                </div>
-              </div>
+                <div className="vessel-details-grid">
+                  <div className="vessel-main-info">
+                    <span className="vessel-name-txt">
+                      {selectedBoat ? selectedBoat.name : (currentSlot?.boatName || "Safari Expedition Boat")}
+                    </span>
+                    <span className="vessel-type-txt">
+                      {selectedBoat?.boatType ? `${selectedBoat.boatType} Class` : "Certified River Class"}
+                    </span>
+                  </div>
 
-              <p className="vessel-dispatch-note">
-                {scheduledSlot
-                  ? "This vessel and certified captain are formally locked and assigned to your scheduled expedition slot."
-                  : "Expedition vessels and certified captains are dispatched by Safari Operations based on river safety conditions."}
-              </p>
-            </div>
+                  <div className="vessel-attributes">
+                    <span className="attr-item">
+                      👥 Vessel Capacity: <strong>{boatCapacity} Passengers</strong>
+                    </span>
+                    {currentSlot?.remainingSeats !== undefined && (
+                      <span className="attr-item">
+                        💺 Available Seats: <strong>{currentSlot.remainingSeats} Seats</strong>
+                      </span>
+                    )}
+                    {currentSlot?.guideName && (
+                      <span className="attr-item">
+                        🧭 Certified Captain: <strong>{currentSlot.guideName}</strong>
+                      </span>
+                    )}
+                    {(currentSlot?.timeSlot || formData.timeSlot) && (
+                      <span className="attr-item">
+                        ⏰ Departure Slot: <strong>{currentSlot?.timeSlot || formData.timeSlot}</strong>
+                      </span>
+                    )}
+                    <span className="attr-item">🛡️ Life jackets & safety gear inspected</span>
+                  </div>
+                </div>
+
+                <p className="vessel-dispatch-note">
+                  {currentSlot
+                    ? "This vessel and certified captain are formally locked and assigned to your scheduled expedition slot."
+                    : "Expedition vessels and certified captains are dispatched by Safari Operations based on river safety conditions."}
+                </p>
+              </div>
+            )}
 
             <div className="form-row dual">
               <div className="form-field">
@@ -590,9 +744,21 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
           <button
             type="submit"
             className="btn-confirm-booking"
-            disabled={loading || !!errorMessage || (formData.paymentMethod === "card" && !!cardError)}
+            disabled={
+              loading ||
+              isDateUnscheduled ||
+              loadingDateSchedules ||
+              !!errorMessage ||
+              (formData.paymentMethod === "card" && !!cardError)
+            }
           >
-            {loading ? "Processing Reservation..." : `Confirm & Pay LKR ${totalPrice.toLocaleString()}`}
+            {loading
+              ? "Processing Reservation..."
+              : isDateUnscheduled
+              ? "⚠️ Date Not Scheduled by Operations"
+              : loadingDateSchedules
+              ? "Checking Operational Schedules..."
+              : `Confirm & Pay LKR ${totalPrice.toLocaleString()}`}
           </button>
         </form>
       </div>
