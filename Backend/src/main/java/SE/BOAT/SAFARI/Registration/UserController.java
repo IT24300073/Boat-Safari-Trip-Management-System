@@ -64,19 +64,40 @@ public class UserController {
     }
 
     @PutMapping("/{id}/password")
-    public ResponseEntity<Void> updatePassword(
-            @PathVariable Integer id,
+    public ResponseEntity<?> updatePassword(
+            @PathVariable String id,
             @RequestBody java.util.Map<String, String> body) {
 
         String newPassword = body.get("password");
-        if (newPassword == null || newPassword.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Password cannot be empty."));
         }
 
-        boolean updated = userService.updatePassword(id, newPassword);
-        return updated
-                ? ResponseEntity.ok().build()
-                : ResponseEntity.notFound().build();
+        Integer userId = null;
+        try {
+            userId = Integer.parseInt(id);
+        } catch (NumberFormatException ignored) {}
+
+        String email = body.get("email");
+        boolean updated = false;
+
+        if (userId != null) {
+            updated = userService.updatePassword(userId, newPassword);
+        }
+        
+        if (!updated && email != null && !email.trim().isEmpty()) {
+            updated = userService.updatePasswordByEmail(email.trim(), newPassword);
+        }
+
+        if (updated) {
+            return ResponseEntity.ok(Map.of("message", "Password updated successfully!"));
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User account not found."));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<?> updatePasswordWithoutId(@RequestBody java.util.Map<String, String> body) {
+        return updatePassword("undefined", body);
     }
 
     @DeleteMapping("/{id}")

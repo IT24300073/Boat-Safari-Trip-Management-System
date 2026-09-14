@@ -27,6 +27,11 @@ public class UserService {
             return null;
         }
 
+        // Enforce exactly 10 digits for mobile number if provided
+        if (phone != null && !phone.matches("^\\d{10}$")) {
+            return null;
+        }
+
         if (email != null && userRepository.existsByEmail(email)) {
             return null;
         }
@@ -169,6 +174,18 @@ public class UserService {
 
     public boolean updatePassword(Integer id, String newPassword) {
         Optional<User> existingUserOptional = userRepository.findById(id);
+        if (existingUserOptional.isPresent()) {
+            User existingUser = existingUserOptional.get();
+            existingUser.setPassword(newPassword.trim());
+            userRepository.save(existingUser);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updatePasswordByEmail(String email, String newPassword) {
+        if (email == null || email.trim().isEmpty()) return false;
+        Optional<User> existingUserOptional = userRepository.findByEmail(email.trim());
         if (existingUserOptional.isPresent()) {
             User existingUser = existingUserOptional.get();
             existingUser.setPassword(newPassword.trim());

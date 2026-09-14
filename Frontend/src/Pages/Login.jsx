@@ -39,7 +39,7 @@ function Login() {
 
     // Hardcoded admin login fallback
     if (inputVal === "admin@gmail.com" && formData.password === "admin") {
-      login({ email: "admin@gmail.com", name: "System Admin", role: "ADMIN" });
+      login({ id: 112, email: "admin@gmail.com", name: "Admin", role: "ADMIN", phone: "0770000000" });
       setLoading(false);
       navigate("/admin");
       return;
