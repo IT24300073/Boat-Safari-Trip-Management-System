@@ -199,10 +199,28 @@ public class SafariScheduleService {
         }
 
         int bookedSeats = 0;
-        if (schedule.getBoatId() > 0 && schedule.getScheduleDate() != null) {
-            List<SE.BOAT.SAFARI.Booking.Booking> bookings = bookingRepository.findByBoatIdAndSafariDate(
-                    schedule.getBoatId(), schedule.getScheduleDate()
-            );
+        if (schedule.getId() != null) {
+            List<SE.BOAT.SAFARI.Booking.Booking> bookingsBySchedule = bookingRepository.findByScheduleId(schedule.getId());
+            if (!bookingsBySchedule.isEmpty()) {
+                bookedSeats = bookingsBySchedule.stream()
+                        .mapToInt(b -> b.getPassengers() > 0 ? b.getPassengers() : (b.getAdults() + b.getChildren()))
+                        .sum();
+            }
+        }
+
+        // If no bookings found by direct scheduleId, check by boatId, scheduleDate, and timeSlot
+        if (bookedSeats == 0 && schedule.getBoatId() > 0 && schedule.getScheduleDate() != null) {
+            List<SE.BOAT.SAFARI.Booking.Booking> bookings;
+            if (schedule.getTimeSlot() != null && !schedule.getTimeSlot().trim().isEmpty()) {
+                bookings = bookingRepository.findByBoatIdAndSafariDateAndTimeSlot(
+                        schedule.getBoatId(), schedule.getScheduleDate(), schedule.getTimeSlot().trim()
+                );
+            } else {
+                bookings = bookingRepository.findByBoatIdAndSafariDate(
+                        schedule.getBoatId(), schedule.getScheduleDate()
+                );
+            }
+
             bookedSeats = bookings.stream()
                     .filter(b -> schedule.getTripName() == null
                             || b.getTrip() == null

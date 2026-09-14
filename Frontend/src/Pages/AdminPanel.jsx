@@ -550,6 +550,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                   <th>Name</th>
                   <th>Email</th>
                   <th>Safari Date</th>
+                  <th>Time Slot</th>
                   <th>Adults</th>
                   <th>Children</th>
                   <th>Total Price</th>
@@ -565,6 +566,11 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                     <td>{b.name}</td>
                     <td>{b.email}</td>
                     <td>{b.safariDate}</td>
+                    <td>
+                      <span className="badge-duration">
+                        {b.timeSlot || "08:00 - 10:00 AM"}
+                      </span>
+                    </td>
                     <td>{b.adults}</td>
                     <td>{b.children}</td>
                     <td>{b.totalPrice}</td>

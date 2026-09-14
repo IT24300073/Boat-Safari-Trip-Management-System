@@ -28,6 +28,12 @@ public class Booking {
     @Column(name = "safari_date")
     private LocalDate safariDate;
 
+    @Column(name = "time_slot")
+    private String timeSlot; // e.g. "08:00 AM - 10:00 AM"
+
+    @Column(name = "schedule_id")
+    private Long scheduleId;
+
     @Column(nullable = false)
     private int passengers;
 

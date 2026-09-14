@@ -16,31 +16,61 @@ public class BookingService {
     @Autowired
     private SE.BOAT.SAFARI.BoatManagement.BoatRepository boatRepository;
 
+    @Autowired(required = false)
+    private SE.BOAT.SAFARI.Schedule.SafariScheduleRepository safariScheduleRepository;
+
     public void validateAssignmentConflict(Booking booking, Integer excludeBookingId) {
+        // 1. If linked to a SafariSchedule, verify schedule state and inherit date/slot
+        if (booking.getScheduleId() != null && safariScheduleRepository != null) {
+            java.util.Optional<SE.BOAT.SAFARI.Schedule.SafariSchedule> schedOpt = safariScheduleRepository.findById(booking.getScheduleId());
+            if (schedOpt.isPresent()) {
+                SE.BOAT.SAFARI.Schedule.SafariSchedule sched = schedOpt.get();
+                if ("CANCELLED".equalsIgnoreCase(sched.getStatus())) {
+                    throw new IllegalStateException("This expedition slot has been CANCELLED by Safari Operations: "
+                            + (sched.getCancelReason() != null ? sched.getCancelReason() : "Adverse river/weather conditions"));
+                }
+                if (booking.getTimeSlot() == null || booking.getTimeSlot().trim().isEmpty()) {
+                    booking.setTimeSlot(sched.getTimeSlot());
+                }
+                if (booking.getSafariDate() == null) {
+                    booking.setSafariDate(sched.getScheduleDate());
+                }
+            }
+        }
+
         if (booking.getBoat() == null) {
             return;
         }
 
         int boatId = booking.getBoat().getId();
 
-        // 1. Verify Boat maintenance status
+        // 2. Verify Boat maintenance status
         SE.BOAT.SAFARI.BoatManagement.Boat boat = boatRepository.findById(boatId).orElse(booking.getBoat());
         if (boat != null && ("MAINTENANCE".equalsIgnoreCase(boat.getStatus()) || "UNAVAILABLE".equalsIgnoreCase(boat.getStatus()))) {
             throw new IllegalStateException("Selected boat '" + boat.getName() + "' is currently under maintenance / unavailable for trip assignment.");
         }
 
-        // 2. Validate boat assignment and capacity on the same safari date
+        // 3. Validate boat assignment and capacity per time slot on the safari date
         if (booking.getSafariDate() != null) {
-            List<Booking> existingOnDate = bookingRepository.findByBoatIdAndSafariDate(boatId, booking.getSafariDate());
+            List<Booking> existingMatches;
+            if (booking.getScheduleId() != null) {
+                existingMatches = bookingRepository.findByScheduleId(booking.getScheduleId());
+            } else if (booking.getTimeSlot() != null && !booking.getTimeSlot().trim().isEmpty()) {
+                existingMatches = bookingRepository.findByBoatIdAndSafariDateAndTimeSlot(boatId, booking.getSafariDate(), booking.getTimeSlot().trim());
+            } else {
+                existingMatches = bookingRepository.findByBoatIdAndSafariDate(boatId, booking.getSafariDate());
+            }
+
             int totalExistingPassengers = 0;
 
-            for (Booking existing : existingOnDate) {
+            for (Booking existing : existingMatches) {
                 if (excludeBookingId == null || existing.getId() != excludeBookingId) {
-                    // Prevent assigning the same boat to two different trips on the same date
+                    // Prevent assigning the same boat to two different trips during the same time slot
                     if (existing.getTrip() != null && booking.getTrip() != null
                             && !existing.getTrip().getId().equals(booking.getTrip().getId())) {
+                        String slotSuffix = booking.getTimeSlot() != null ? " (" + booking.getTimeSlot() + ")" : "";
                         throw new IllegalStateException("Assignment Conflict: Boat '" + (boat != null ? boat.getName() : "ID " + boatId)
-                                + "' is already assigned to trip '" + existing.getTrip().getName() + "' on " + booking.getSafariDate() + ".");
+                                + "' is already assigned to trip '" + existing.getTrip().getName() + "' on " + booking.getSafariDate() + slotSuffix + ".");
                     }
 
                     totalExistingPassengers += existing.getPassengers() > 0
@@ -56,8 +86,9 @@ public class BookingService {
             int capacity = boat != null ? boat.getCapacity() : 10;
             if (totalExistingPassengers + newPassengers > capacity) {
                 int remaining = Math.max(0, capacity - totalExistingPassengers);
+                String slotInfo = booking.getTimeSlot() != null ? " for departure slot " + booking.getTimeSlot() : "";
                 throw new IllegalStateException("Capacity Exceeded: Boat '" + (boat != null ? boat.getName() : "ID " + boatId)
-                        + "' only has " + remaining + " seat(s) available on " + booking.getSafariDate() + " (attempted to reserve " + newPassengers + " seats).");
+                        + "' only has " + remaining + " seat(s) available on " + booking.getSafariDate() + slotInfo + " (attempted to reserve " + newPassengers + " seats).");
             }
         }
     }

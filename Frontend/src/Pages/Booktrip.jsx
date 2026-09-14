@@ -22,6 +22,7 @@ function BookTrip() {
   const [hasSearched, setHasSearched] = useState(false);
   const [bookingPrefillDate, setBookingPrefillDate] = useState("");
   const [bookingPrefillBoatId, setBookingPrefillBoatId] = useState("");
+  const [selectedScheduleSlot, setSelectedScheduleSlot] = useState(null);
 
   // Redirect if user not logged in
   useEffect(() => {
@@ -41,6 +42,25 @@ function BookTrip() {
       .catch((err) => {
         console.error("Error fetching trips:", err);
         setLoadingTrips(false);
+      });
+  }, []);
+
+  // Auto-fetch today's schedules on initial load
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setSearchDate(today);
+    setIsSearching(true);
+
+    axios
+      .get(`http://localhost:8080/api/schedules/search?date=${today}`)
+      .then((res) => {
+        setScheduledSlots(res.data || []);
+        setHasSearched(true);
+        setIsSearching(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching initial schedules:", err);
+        setIsSearching(false);
       });
   }, []);
 
@@ -67,15 +87,32 @@ function BookTrip() {
   };
 
   const handleResetSearch = () => {
-    setSearchDate(new Date().toISOString().split("T")[0]);
+    const today = new Date().toISOString().split("T")[0];
+    setSearchDate(today);
     setSearchTimeSlot("ALL");
-    setScheduledSlots([]);
-    setHasSearched(false);
+    handleSearchSchedules();
   };
 
   const handleSelectTrip = (trip) => {
+    // Check if there are active schedule slots for this trip in currently loaded slots
+    const matchingSlots = scheduledSlots.filter(
+      (s) => s.tripName?.toLowerCase().trim() === trip.name.toLowerCase().trim()
+    );
+
+    if (matchingSlots.length === 1 && matchingSlots[0].seatStatus !== "FULL" && matchingSlots[0].seatStatus !== "MAINTENANCE") {
+      handleSelectScheduleSlot(matchingSlots[0]);
+      return;
+    }
+
+    if (matchingSlots.length > 1) {
+      const resultsEl = document.querySelector(".search-results-section");
+      if (resultsEl) resultsEl.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
     setBookingPrefillDate(searchDate || "");
     setBookingPrefillBoatId("");
+    setSelectedScheduleSlot(null);
     setSelectedTrip(trip);
     setShowBooking(true);
   };
@@ -95,6 +132,7 @@ function BookTrip() {
 
     setBookingPrefillDate(slot.scheduleDate || searchDate || "");
     setBookingPrefillBoatId(slot.boatId ? String(slot.boatId) : "");
+    setSelectedScheduleSlot(slot);
     setSelectedTrip(matchedTrip);
     setShowBooking(true);
   };
@@ -308,7 +346,7 @@ function BookTrip() {
                         className="btn-select-trip"
                         onClick={() => handleSelectTrip(trip)}
                       >
-                        Select & Reserve Seat ➔
+                        Check Schedule & Reserve ➔
                       </button>
                     </div>
                   </div>
@@ -324,6 +362,7 @@ function BookTrip() {
           trip={selectedTrip}
           initialDate={bookingPrefillDate}
           initialBoatId={bookingPrefillBoatId}
+          scheduledSlot={selectedScheduleSlot}
           setShowBooking={setShowBooking}
         />
       )}

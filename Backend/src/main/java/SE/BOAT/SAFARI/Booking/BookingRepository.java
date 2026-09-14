@@ -18,6 +18,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>,
 
     List<Booking> findByBoatIdAndSafariDate(int boatId, java.time.LocalDate safariDate);
 
+    List<Booking> findByBoatIdAndSafariDateAndTimeSlot(int boatId, java.time.LocalDate safariDate, String timeSlot);
+
+    List<Booking> findByScheduleId(Long scheduleId);
+
     @EntityGraph(attributePaths = {"boat", "trip"})
     List<Booking> findByEmailIgnoreCaseOrderBySafariDateDesc(String email);
 }

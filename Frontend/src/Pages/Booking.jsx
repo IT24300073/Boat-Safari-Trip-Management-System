@@ -3,17 +3,19 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
+function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSlot }) {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    date: initialDate || "",
+    date: initialDate || (scheduledSlot?.scheduleDate || new Date().toISOString().split("T")[0]),
+    timeSlot: scheduledSlot?.timeSlot || "08:00 AM - 10:00 AM",
+    scheduleId: scheduledSlot?.id ? Number(scheduledSlot.id) : null,
     adults: 1,
     children: 0,
-    boatId: initialBoatId ? String(initialBoatId) : "",
+    boatId: initialBoatId ? String(initialBoatId) : (scheduledSlot?.boatId ? String(scheduledSlot.boatId) : ""),
     tripId: trip?.id ? String(trip.id) : "",
     paymentMethod: "card",
     cardNumber: "",
@@ -48,10 +50,11 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
         setBoats(availableBoats);
         if (availableBoats.length > 0) {
           setFormData((prev) => {
-            if (prev.boatId) return prev;
-            const chosenId = initialBoatId && availableBoats.some((b) => b.id === Number(initialBoatId))
-              ? String(initialBoatId)
-              : String(availableBoats[0].id);
+            const targetId = scheduledSlot?.boatId || initialBoatId;
+            const chosenId =
+              targetId && availableBoats.some((b) => b.id === Number(targetId))
+                ? String(targetId)
+                : prev.boatId || String(availableBoats[0].id);
             return { ...prev, boatId: chosenId };
           });
         }
@@ -60,12 +63,23 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
 
     fetch("http://localhost:8080/api/trips")
       .then((res) => res.json())
-      .then((data) => setTrips(data))
+      .then((data) => setTrips(data || []))
       .catch((err) => console.error("Error fetching trips:", err));
-  }, []);
+  }, [initialBoatId, scheduledSlot]);
 
-  const selectedBoat = boats.find((b) => b.id === Number(formData.boatId));
-  const boatCapacity = selectedBoat ? selectedBoat.capacity : 0;
+  const selectedBoat =
+    boats.find((b) => b.id === Number(formData.boatId)) ||
+    (scheduledSlot
+      ? {
+          id: scheduledSlot.boatId,
+          name: scheduledSlot.boatName,
+          boatType: "Safari Vessel",
+          capacity: scheduledSlot.totalCapacity || 10,
+          price: 0,
+        }
+      : boats[0] || null);
+
+  const boatCapacity = selectedBoat ? selectedBoat.capacity : (scheduledSlot?.totalCapacity || 10);
 
   const totalPrice =
     formData.adults * (trip?.adultPrice || 0) +
@@ -250,6 +264,8 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
       name: formData.name,
       email: formData.email,
       safariDate: formData.date,
+      timeSlot: formData.timeSlot || scheduledSlot?.timeSlot || "08:00 AM - 10:00 AM",
+      scheduleId: formData.scheduleId || (scheduledSlot?.id ? Number(scheduledSlot.id) : null),
       adults: formData.adults,
       children: formData.children,
       passengers: Number(formData.adults) + Number(formData.children),
@@ -334,7 +350,7 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
 
             <div className="form-row dual">
               <div className="form-field">
-                <label>Safari Date</label>
+                <label>Safari Date *</label>
                 <input
                   type="date"
                   name="date"
@@ -345,21 +361,64 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
               </div>
 
               <div className="form-field">
-                <label>Select Boat</label>
-                <select
-                  name="boatId"
-                  value={formData.boatId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- Choose Boat --</option>
-                  {boats.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.boatType}) - Cap: {b.capacity} (LKR {b.price})
-                    </option>
-                  ))}
-                </select>
+                <label>Departure Time Slot *</label>
+                {scheduledSlot ? (
+                  <div className="locked-time-slot-pill">
+                    <span>⏰ <strong>{scheduledSlot.timeSlot}</strong></span>
+                    <span className="slot-locked-tag">Confirmed Slot</span>
+                  </div>
+                ) : (
+                  <select
+                    name="timeSlot"
+                    value={formData.timeSlot}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="08:00 AM - 10:00 AM">08:00 AM - 10:00 AM (Morning Safari)</option>
+                    <option value="10:30 AM - 12:30 PM">10:30 AM - 12:30 PM (Midday Cruise)</option>
+                    <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM (Afternoon Tour)</option>
+                    <option value="03:30 PM - 05:30 PM">03:30 PM - 05:30 PM (Sunset Expedition)</option>
+                  </select>
+                )}
               </div>
+            </div>
+
+            {/* Expedition Vessel Allocation (Managed by Operations) */}
+            <div className="vessel-assignment-banner">
+              <div className="vessel-badge-row">
+                <span className="vessel-tag">
+                  {scheduledSlot ? "⛵ ASSIGNED EXPEDITION VESSEL" : "⛵ FLEET DISPATCH ALLOCATION"}
+                </span>
+                <span className="operations-pill">Managed by Safari Operations</span>
+              </div>
+
+              <div className="vessel-details-grid">
+                <div className="vessel-main-info">
+                  <span className="vessel-name-txt">
+                    {selectedBoat ? selectedBoat.name : (scheduledSlot?.boatName || "Safari Expedition Boat")}
+                  </span>
+                  <span className="vessel-type-txt">
+                    {selectedBoat?.boatType ? `${selectedBoat.boatType} Class` : "Certified River Class"}
+                  </span>
+                </div>
+
+                <div className="vessel-attributes">
+                  <span className="attr-item">👥 Vessel Capacity: <strong>{boatCapacity} Passengers</strong></span>
+                  {scheduledSlot?.guideName && (
+                    <span className="attr-item">🧭 Certified Captain: <strong>{scheduledSlot.guideName}</strong></span>
+                  )}
+                  {scheduledSlot?.timeSlot && (
+                    <span className="attr-item">⏰ Departure Slot: <strong>{scheduledSlot.timeSlot}</strong></span>
+                  )}
+                  <span className="attr-item">🛡️ Life jackets & safety gear inspected</span>
+                </div>
+              </div>
+
+              <p className="vessel-dispatch-note">
+                {scheduledSlot
+                  ? "This vessel and certified captain are formally locked and assigned to your scheduled expedition slot."
+                  : "Expedition vessels and certified captains are dispatched by Safari Operations based on river safety conditions."}
+              </p>
             </div>
 
             <div className="form-row dual">

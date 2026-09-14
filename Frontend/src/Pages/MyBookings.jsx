@@ -537,9 +537,9 @@ function MyBookings() {
                         <div className="spec-item">
                           <span className="spec-label">🕒 Departure:</span>
                           <span className="spec-val">
-                            {b.trip?.startingTime && b.trip.startingTime !== "Managed in Schedule"
+                            {b.timeSlot || (b.trip?.startingTime && b.trip.startingTime !== "Managed in Schedule"
                               ? b.trip.startingTime
-                              : "Scheduled Slot"}
+                              : "Scheduled Slot")}
                           </span>
                         </div>
 
