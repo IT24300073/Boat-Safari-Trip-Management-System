@@ -281,11 +281,11 @@ function BookTrip() {
                       <div className="trip-info-pills">
                         <div className="info-pill">
                           <span className="pill-icon">⏰</span>
-                          <span><strong>Time:</strong> {trip.startingTime || "Flexible"}</span>
+                          <span><strong>Time:</strong> {trip.startingTime && trip.startingTime !== "Managed in Schedule" ? trip.startingTime : "Scheduled Slots"}</span>
                         </div>
                         <div className="info-pill">
                           <span className="pill-icon">⏱️</span>
-                          <span><strong>Duration:</strong> {trip.duration || "2 Hours"}</span>
+                          <span><strong>Duration:</strong> 2 Hours</span>
                         </div>
                       </div>
 

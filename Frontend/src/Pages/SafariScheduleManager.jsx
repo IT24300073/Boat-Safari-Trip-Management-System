@@ -9,6 +9,7 @@ function SafariScheduleManager() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [formData, setFormData] = useState({
     tripName: "",
@@ -246,7 +247,7 @@ function SafariScheduleManager() {
                   <option value="">-- Choose Existing Package or Type Below --</option>
                   {trips.map((t) => (
                     <option key={t.id} value={t.name}>
-                      {t.name} ({t.type || "Safari"}) - LKR {t.adultPrice}
+                      {t.name} ({t.type || "Safari"} • 2h) - LKR {t.adultPrice}
                     </option>
                   ))}
                 </select>
@@ -407,66 +408,166 @@ function SafariScheduleManager() {
 
         {/* Master Schedule Table */}
         <div className="schedule-card table-section">
-          <h3>📋 Master Safari Schedule Registry</h3>
+          <div className="table-header-bar">
+            <div className="table-title-group">
+              <h3>📋 Master Safari Schedule Registry</h3>
+              <span className="table-subtitle">
+                Centralized registry of scheduled, active, and completed safari expeditions
+              </span>
+            </div>
+            <div className="table-controls-group">
+              <div className="search-filter-box">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Filter by trip, boat, guide, or date..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="table-search-input"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="btn-clear-search"
+                    onClick={() => setSearchQuery("")}
+                    title="Clear filter"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <span className="records-count-badge">
+                {schedules.filter((s) => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    s.tripName?.toLowerCase().includes(q) ||
+                    s.boatName?.toLowerCase().includes(q) ||
+                    s.guideName?.toLowerCase().includes(q) ||
+                    s.scheduleDate?.toLowerCase().includes(q) ||
+                    s.timeSlot?.toLowerCase().includes(q) ||
+                    s.status?.toLowerCase().includes(q) ||
+                    String(s.id).includes(q)
+                  );
+                }).length} {schedules.length === 1 ? "Record" : "Records"}
+              </span>
+            </div>
+          </div>
+
           {schedules.length === 0 ? (
-            <p className="no-records">No safari schedules registered.</p>
+            <div className="empty-state-box">
+              <span className="empty-icon">⛵</span>
+              <p>No safari schedules registered. Use the form above to schedule your first expedition.</p>
+            </div>
           ) : (
-            <table className="schedule-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Trip Name</th>
-                  <th>Date</th>
-                  <th>Time Slot</th>
-                  <th>Assigned Boat</th>
-                  <th>Assigned Guide</th>
-                  <th>Status & Notes</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedules.map((s) => (
-                  <tr key={s.id}>
-                    <td>#{s.id}</td>
-                    <td><strong>{s.tripName}</strong></td>
-                    <td>{s.scheduleDate}</td>
-                    <td><span className="time-pill">{s.timeSlot}</span></td>
-                    <td>⛵ {s.boatName || `Boat #${s.boatId}`}</td>
-                    <td>👤 {s.guideName}</td>
-                    <td>
-                      <span className={`schedule-status ${s.status?.toLowerCase()}`}>
-                        {s.status}
-                      </span>
-                      {s.status === "CANCELLED" && s.cancelReason && (
-                        <div className="cancel-reason-tag">
-                          Reason: {s.cancelReason}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <div className="action-button-group">
-                        {s.status !== "CANCELLED" && (
-                          <>
-                            <button className="btn-edit-schedule" onClick={() => handleEdit(s)}>
-                              Edit
-                            </button>
-                            <button
-                              className="btn-cancel-schedule"
-                              onClick={() => setCancellingItem(s)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                        <button className="btn-delete-schedule" onClick={() => handleDelete(s.id)}>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+            <div className="table-responsive-wrapper">
+              <table className="schedule-table">
+                <thead>
+                  <tr>
+                    <th className="col-id">ID</th>
+                    <th className="col-trip">Trip Name</th>
+                    <th className="col-date">Date</th>
+                    <th className="col-time">Time Slot</th>
+                    <th className="col-boat">Assigned Boat</th>
+                    <th className="col-guide">Assigned Guide</th>
+                    <th className="col-status">Status & Notes</th>
+                    <th className="col-actions">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {schedules
+                    .filter((s) => {
+                      if (!searchQuery.trim()) return true;
+                      const q = searchQuery.toLowerCase();
+                      return (
+                        s.tripName?.toLowerCase().includes(q) ||
+                        s.boatName?.toLowerCase().includes(q) ||
+                        s.guideName?.toLowerCase().includes(q) ||
+                        s.scheduleDate?.toLowerCase().includes(q) ||
+                        s.timeSlot?.toLowerCase().includes(q) ||
+                        s.status?.toLowerCase().includes(q) ||
+                        String(s.id).includes(q)
+                      );
+                    })
+                    .map((s) => (
+                      <tr key={s.id} className={`schedule-row ${s.status?.toLowerCase()}`}>
+                        <td className="col-id">
+                          <span className="id-tag">#{s.id}</span>
+                        </td>
+                        <td className="col-trip">
+                          <div className="trip-name-cell">
+                            <span className="trip-title-text">{s.tripName}</span>
+                          </div>
+                        </td>
+                        <td className="col-date">
+                          <span className="date-badge">
+                            <span className="cell-icon">📅</span>
+                            <span>{s.scheduleDate}</span>
+                          </span>
+                        </td>
+                        <td className="col-time">
+                          <span className="time-pill">
+                            <span className="pill-icon">⏰</span>
+                            <span>{s.timeSlot}</span>
+                          </span>
+                        </td>
+                        <td className="col-boat">
+                          <div className="boat-cell">
+                            <span className="boat-icon">⛵</span>
+                            <span className="boat-name-text">{s.boatName || `Boat #${s.boatId}`}</span>
+                          </div>
+                        </td>
+                        <td className="col-guide">
+                          <div className="guide-cell">
+                            <span className="guide-icon">🧭</span>
+                            <span className="guide-name-text">{s.guideName}</span>
+                          </div>
+                        </td>
+                        <td className="col-status">
+                          <span className={`schedule-status ${s.status?.toLowerCase()}`}>
+                            <span className="status-dot">●</span>
+                            <span>{s.status}</span>
+                          </span>
+                          {s.status === "CANCELLED" && s.cancelReason && (
+                            <div className="cancel-reason-tag" title={s.cancelReason}>
+                              Reason: {s.cancelReason}
+                            </div>
+                          )}
+                        </td>
+                        <td className="col-actions">
+                          <div className="action-button-group">
+                            {s.status !== "CANCELLED" && (
+                              <>
+                                <button
+                                  className="btn-edit-schedule"
+                                  onClick={() => handleEdit(s)}
+                                  title="Edit schedule details"
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  className="btn-cancel-schedule"
+                                  onClick={() => setCancellingItem(s)}
+                                  title="Cancel and release boat & guide slots"
+                                >
+                                  🚫 Cancel
+                                </button>
+                              </>
+                            )}
+                            <button
+                              className="btn-delete-schedule"
+                              onClick={() => handleDelete(s.id)}
+                              title="Delete record"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

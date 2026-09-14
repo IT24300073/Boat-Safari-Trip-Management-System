@@ -534,23 +534,21 @@ function MyBookings() {
                       )}
 
                       <div className="trip-quick-specs">
-                        {b.trip?.startingTime && (
-                          <div className="spec-item">
-                            <span className="spec-label">🕒 Departure:</span>
-                            <span className="spec-val">
-                              {b.trip.startingTime}
-                            </span>
-                          </div>
-                        )}
+                        <div className="spec-item">
+                          <span className="spec-label">🕒 Departure:</span>
+                          <span className="spec-val">
+                            {b.trip?.startingTime && b.trip.startingTime !== "Managed in Schedule"
+                              ? b.trip.startingTime
+                              : "Scheduled Slot"}
+                          </span>
+                        </div>
 
-                        {b.trip?.duration && (
-                          <div className="spec-item">
-                            <span className="spec-label">⏱️ Duration:</span>
-                            <span className="spec-val">
-                              {b.trip.duration}
-                            </span>
-                          </div>
-                        )}
+                        <div className="spec-item">
+                          <span className="spec-label">⏱️ Duration:</span>
+                          <span className="spec-val">
+                            2 Hours
+                          </span>
+                        </div>
 
                         <div className="spec-item boat-spec">
                           <span className="spec-label">🚤 Boat:</span>

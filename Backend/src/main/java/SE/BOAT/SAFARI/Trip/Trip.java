@@ -22,11 +22,11 @@ public class Trip {
     private Double childPrice;
 
 
-    @Column(name="starting_time",nullable = false)
-    private String startingTime; // e.g. "08:30"
+    @Column(name="starting_time", nullable = true)
+    private String startingTime = "Managed in Schedule";
 
     @Column(nullable = false)
-    private String duration; // e.g. "2 hours"
+    private String duration = "2 Hours";
 
     private String description;
 }

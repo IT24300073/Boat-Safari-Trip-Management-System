@@ -196,8 +196,8 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
     adultPrice: "",
     childPrice: "",
     description: "",
-    startingTime: "",
-    duration: "",
+    startingTime: "Managed in Schedule",
+    duration: "2 Hours",
   });
 
   // --- Fetch Data ---
@@ -430,13 +430,6 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       parseFloat(trip.childPrice) <= 1
     )
       return "Child Price must be greater than 1.";
-    if (!trip.startingTime || !/^\d{2}:\d{2}$/.test(trip.startingTime))
-      return "Starting Time must be in HH:mm format.";
-    if (
-      !trip.duration ||
-      !/^\d+(\.\d+)?\s*(hours?|hrs?|minutes?|mins?)$/i.test(trip.duration)
-    )
-      return "Duration must be valid (e.g., '2 hours', '90 minutes').";
     if (trip.description && trip.description.length > 250)
       return "Description cannot exceed 250 characters.";
     return null;
@@ -454,6 +447,8 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       ...tripForm,
       adultPrice: parseFloat(tripForm.adultPrice),
       childPrice: tripForm.childPrice ? parseFloat(tripForm.childPrice) : null,
+      startingTime: "Managed in Schedule",
+      duration: "2 Hours",
     };
 
     const apiCall = tripForm.id
@@ -468,8 +463,8 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           type: "Shared",
           adultPrice: "",
           childPrice: "",
-          startingTime: "",
-          duration: "",
+          startingTime: "Managed in Schedule",
+          duration: "2 Hours",
           description: "",
         });
         fetchTrips();
@@ -477,7 +472,17 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       .catch(console.error);
   };
 
-  const handleEditTrip = (trip) => setTripForm(trip);
+  const handleEditTrip = (trip) =>
+    setTripForm({
+      id: trip.id,
+      name: trip.name,
+      type: trip.type,
+      adultPrice: trip.adultPrice,
+      childPrice: trip.childPrice,
+      startingTime: "Managed in Schedule",
+      duration: "2 Hours",
+      description: trip.description || "",
+    });
   const handleDeleteTrip = (id) =>
     axios
       .delete(`http://localhost:8080/api/trips/${id}`)
@@ -1140,21 +1145,10 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               placeholder="Child Price"
               required
             />
-            <input
-              type="time"
-              name="startingTime"
-              value={tripForm.startingTime || ""}
-              onChange={handleTripChange}
-              required
-            />
-            <input
-              type="text"
-              name="duration"
-              value={tripForm.duration || ""}
-              onChange={handleTripChange}
-              placeholder="Duration (e.g., 2 hours)"
-              required
-            />
+            <div className="trip-fixed-info-tag">
+              <span>⏱️ Standard Duration: <strong>2 Hours</strong></span>
+              <span>📅 Departure Time: <strong>Managed in Operations Schedule</strong></span>
+            </div>
             <textarea
               name="description"
               value={tripForm.description || ""}
@@ -1174,8 +1168,8 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                 <th>Type</th>
                 <th>Adult Price</th>
                 <th>Child Price</th>
-                <th>Starting Time</th>
                 <th>Duration</th>
+                <th>Departure Time</th>
                 <th>Description</th>
                 <th>Actions</th>
               </tr>
@@ -1193,8 +1187,12 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                     <td>{t.type}</td>
                     <td>{t.adultPrice}</td>
                     <td>{t.childPrice || "N/A"}</td>
-                    <td>{t.startingTime}</td>
-                    <td>{t.duration}</td>
+                    <td>
+                      <span className="badge-duration">2 Hours</span>
+                    </td>
+                    <td>
+                      <span className="badge-schedule-managed">Managed in Schedule</span>
+                    </td>
                     <td>{t.description}</td>
                     <td>
                       <button onClick={() => handleEditTrip(t)}>Edit</button>

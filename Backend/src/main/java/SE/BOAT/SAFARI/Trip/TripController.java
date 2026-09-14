@@ -17,7 +17,13 @@ public class TripController {
     public List<Trip> getAllTrips() { return tripService.getAllTrips(); }
 
     @PostMapping
-    public Trip createTrip(@RequestBody Trip trip) { return tripService.saveTrip(trip); }
+    public Trip createTrip(@RequestBody Trip trip) {
+        trip.setDuration("2 Hours");
+        if (trip.getStartingTime() == null || trip.getStartingTime().trim().isEmpty()) {
+            trip.setStartingTime("Managed in Schedule");
+        }
+        return tripService.saveTrip(trip);
+    }
 
     @PutMapping("/{id}")
     public Trip updateTrip(@PathVariable Long id, @RequestBody Trip trip) {
@@ -27,8 +33,12 @@ public class TripController {
         existing.setType(trip.getType());
         existing.setAdultPrice(trip.getAdultPrice());
         existing.setChildPrice(trip.getChildPrice());
-        existing.setStartingTime(trip.getStartingTime());
-        existing.setDuration(trip.getDuration());
+        existing.setDuration("2 Hours");
+        if (trip.getStartingTime() != null && !trip.getStartingTime().trim().isEmpty()) {
+            existing.setStartingTime(trip.getStartingTime());
+        } else {
+            existing.setStartingTime("Managed in Schedule");
+        }
         existing.setDescription(trip.getDescription());
         return tripService.saveTrip(existing);
     }
