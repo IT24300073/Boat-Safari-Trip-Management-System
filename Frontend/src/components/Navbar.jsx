@@ -7,7 +7,7 @@ function Navbar() {
   const location = useLocation();
   const { isLoggedIn, user } = useAuth();
 
-  if (location.pathname.startsWith("/admin")) {
+  if (location.pathname.startsWith("/admin") || location.pathname.startsWith("/report")) {
     return null;
   }
 

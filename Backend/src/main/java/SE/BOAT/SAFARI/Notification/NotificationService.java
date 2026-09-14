@@ -26,12 +26,17 @@ public class NotificationService {
         List<Booking> allBookings = bookingRepository.findAll();
 
         for (Booking b : allBookings) {
-            boolean matchesDate = schedule.getScheduleDate().equals(b.getSafariDate());
+            boolean matchesScheduleId = b.getScheduleId() != null && b.getScheduleId().equals(schedule.getId());
+            boolean matchesDate = b.getSafariDate() != null && schedule.getScheduleDate().equals(b.getSafariDate());
+            boolean matchesSlot = schedule.getTimeSlot() == null || b.getTimeSlot() == null ||
+                    schedule.getTimeSlot().trim().equalsIgnoreCase(b.getTimeSlot().trim());
             boolean matchesBoat = b.getBoat() != null && b.getBoat().getId() == schedule.getBoatId();
             boolean matchesTrip = b.getTrip() != null && schedule.getTripName() != null &&
                     b.getTrip().getName().equalsIgnoreCase(schedule.getTripName());
 
-            if (matchesDate && (matchesBoat || matchesTrip)) {
+            boolean isAffected = matchesScheduleId || (matchesDate && matchesSlot && (matchesBoat || matchesTrip));
+
+            if (isAffected && b.getEmail() != null && !b.getEmail().trim().isEmpty()) {
                 Notification n = new Notification();
                 n.setRecipientEmail(b.getEmail().trim());
                 n.setRecipientName(b.getName());

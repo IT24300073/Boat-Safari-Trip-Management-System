@@ -4,6 +4,7 @@ import "../Styles/Report.css";
 import { useReactToPrint } from "react-to-print";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import AdminNavbar from "../components/AdminNavbar";
 
 const Report = () => {
   const [viewMode, setViewMode] = useState("OPERATIONS"); // "OPERATIONS", "RECONCILIATION"
@@ -122,6 +123,7 @@ const Report = () => {
 
   return (
     <div className="report-page-wrapper">
+      <AdminNavbar activeTab="reports" />
       <div className="report-header-bar">
         <div>
           <span className="report-badge">FINANCIAL & OPERATIONS AUDIT</span>

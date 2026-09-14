@@ -1,23 +1,34 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import AdminNavbar from "../components/AdminNavbar";
 
 import "../Styles/AdminPanel.css";
 
+const TIME_SLOTS = [
+  "08:00 AM - 10:00 AM",
+  "10:30 AM - 12:30 PM",
+  "01:30 PM - 03:30 PM",
+  "04:00 PM - 06:00 PM",
+];
+
 const AdminPanel = () => {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
   const [bookings, setBookings] = useState([]);
   const [users, setUsers] = useState([]);
   const [boats, setBoats] = useState([]);
   const [trips, setTrips] = useState([]);
-  const [activeTab, setActiveTab] = useState("bookings");
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "bookings");
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl, activeTab]);
 
   // --- at the top, add state for feedbacks ---
 const [feedbacks, setFeedbacks] = useState([]);
@@ -106,12 +117,52 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
     name: "",
     email: "",
     safariDate: "",
-    adults: "",
-    children: "",
+    timeSlot: "08:00 AM - 10:00 AM",
+    scheduleId: null,
+    adults: "1",
+    children: "0",
     totalPrice: "",
     boatId: "",
     tripId: "",
+    paymentMethod: "cash",
+    paymentStatus: "CONFIRMED",
+    bookingStatus: "CONFIRMED",
+    cancelReason: "",
   });
+
+  const [adminSchedules, setAdminSchedules] = useState([]);
+  const [loadingAdminSchedules, setLoadingAdminSchedules] = useState(false);
+
+  useEffect(() => {
+    if (!bookingForm.safariDate) {
+      setAdminSchedules([]);
+      return;
+    }
+    setLoadingAdminSchedules(true);
+    axios
+      .get(`http://localhost:8080/api/schedules/search?date=${bookingForm.safariDate}`)
+      .then((res) => {
+        const active = (res.data || []).filter((s) => s.status !== "CANCELLED");
+        setAdminSchedules(active);
+
+        // Auto-match schedule if trip & timeSlot match
+        const selectedTrip = trips.find((t) => String(t.id) === String(bookingForm.tripId));
+        const matchedSched = active.find(
+          (s) =>
+            s.timeSlot === bookingForm.timeSlot &&
+            (!selectedTrip || s.tripName?.toLowerCase().trim() === selectedTrip.name?.toLowerCase().trim())
+        );
+        if (matchedSched) {
+          setBookingForm((prev) => ({
+            ...prev,
+            scheduleId: matchedSched.id,
+            boatId: prev.boatId || String(matchedSched.boatId),
+          }));
+        }
+      })
+      .catch((err) => console.error("Error fetching admin date schedules:", err))
+      .finally(() => setLoadingAdminSchedules(false));
+  }, [bookingForm.safariDate, bookingForm.tripId, bookingForm.timeSlot]);
    // --- User Form ---
    const [userForm, setUserForm] = useState({
     id: null,
@@ -312,6 +363,12 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       totalPrice: finalTotalPrice,
       boat: bookingForm.boatId ? { id: parseInt(bookingForm.boatId) } : null,
       trip: bookingForm.tripId ? { id: parseInt(bookingForm.tripId) } : null,
+      timeSlot: bookingForm.timeSlot || "08:00 AM - 10:00 AM",
+      scheduleId: bookingForm.scheduleId ? Number(bookingForm.scheduleId) : null,
+      paymentMethod: bookingForm.paymentMethod || "cash",
+      paymentStatus: bookingForm.paymentStatus || "CONFIRMED",
+      bookingStatus: bookingForm.bookingStatus || "CONFIRMED",
+      cancelReason: bookingForm.bookingStatus === "CANCELLED" ? (bookingForm.cancelReason || "Cancelled by Admin") : null,
     };
 
     const apiCall = bookingForm.id
@@ -328,11 +385,17 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           name: "",
           email: "",
           safariDate: "",
-          adults: "",
-          children: "",
+          timeSlot: "08:00 AM - 10:00 AM",
+          scheduleId: null,
+          adults: "1",
+          children: "0",
           totalPrice: "",
           boatId: "",
           tripId: "",
+          paymentMethod: "cash",
+          paymentStatus: "CONFIRMED",
+          bookingStatus: "CONFIRMED",
+          cancelReason: "",
         });
         fetchDashboard();
       })
@@ -349,12 +412,36 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       name: booking.name,
       email: booking.email,
       safariDate: booking.safariDate || "",
+      timeSlot: booking.timeSlot || "08:00 AM - 10:00 AM",
+      scheduleId: booking.scheduleId || null,
       adults: booking.adults,
       children: booking.children,
       totalPrice: booking.totalPrice,
-      boatId: booking.boat?.id || "",
-      tripId: booking.trip?.id || "",
+      boatId: booking.boat?.id ? String(booking.boat.id) : "",
+      tripId: booking.trip?.id ? String(booking.trip.id) : "",
+      paymentMethod: booking.paymentMethod || "cash",
+      paymentStatus: booking.paymentStatus || "CONFIRMED",
+      bookingStatus: booking.bookingStatus || "CONFIRMED",
+      cancelReason: booking.cancelReason || "",
     });
+
+  const handleQuickCancelBooking = async (b) => {
+    const reason = window.prompt(
+      `Enter cancellation reason for Booking #${b.id} (${b.name}):`,
+      b.cancelReason || "Cancelled by Safari Operations"
+    );
+    if (reason === null) return;
+
+    try {
+      await axios.put(`http://localhost:8080/api/bookings/${b.id}/cancel`, {
+        reason: reason.trim() || "Cancelled by Safari Operations",
+      });
+      fetchDashboard();
+    } catch (err) {
+      console.error("Failed to cancel booking:", err);
+      alert("Could not cancel booking: " + (err.response?.data?.message || err.message));
+    }
+  };
 
   const handleDeleteBooking = (id) =>
     axios
@@ -491,38 +578,14 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
 
   return (
     <div className="admin-container">
-      <div className="admin-header-bar">
-        <h1>Admin Panel</h1>
-        <div className="admin-user-controls">
-          {user && (
-            <span className="admin-user-badge">
-              ⚡ Logged as: <strong>{user.name || user.email}</strong>
-            </span>
-          )}
-          <button className="btn-admin-logout" onClick={handleLogout}>
-            🚪 Logout
-          </button>
-        </div>
-      </div>
-      <div className="admin-tabs">
-      {["bookings", "users", "boats", "trips", "feedbacks"].map((tab) => (
-  <button
-    key={tab}
-    className={activeTab === tab ? "active-tab" : ""}
-    onClick={() => setActiveTab(tab)}
-  >
-    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-  </button>
-))}
-
-      </div>
+      <AdminNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* ✅ BOOKINGS */}
       {activeTab === "bookings" && (
         <section>
-          <h2>Bookings</h2>
+          <h2>Safari Bookings Management</h2>
           {/* --- REPORT BUTTON --- */}
-          <div className="report-action">
+          <div className="report-action" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
             <button
               className="generate-report-btn"
               onClick={() => {
@@ -530,81 +593,245 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                   .post("http://localhost:8080/api/reports/generate")
                   .then((res) => {
                     console.log("Report generated:", res.data);
-                    navigate("/report"); // ✅ now works
+                    navigate("/report");
                   })
                   .catch((err) => console.error(err));
               }}
             >
-              Generate Report
+              📊 Financial & Operations Report
             </button>
+
+            <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              Total Reservations: <strong>{bookings.length}</strong>
+            </span>
           </div>
 
           {/* Table */}
           {bookings.length === 0 ? (
-            <p>No bookings</p>
+            <p>No bookings found.</p>
           ) : (
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>Customer</th>
                   <th>Safari Date</th>
                   <th>Time Slot</th>
-                  <th>Adults</th>
-                  <th>Children</th>
+                  <th>Schedule</th>
+                  <th>Guests</th>
                   <th>Total Price</th>
                   <th>Boat</th>
                   <th>Trip</th>
+                  <th>Payment</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((b) => (
-                  <tr key={b.id}>
-                    <td>{b.id}</td>
-                    <td>{b.name}</td>
-                    <td>{b.email}</td>
-                    <td>{b.safariDate}</td>
-                    <td>
-                      <span className="badge-duration">
-                        {b.timeSlot || "08:00 - 10:00 AM"}
-                      </span>
-                    </td>
-                    <td>{b.adults}</td>
-                    <td>{b.children}</td>
-                    <td>{b.totalPrice}</td>
-                    <td>{b.boat?.name || "N/A"}</td>
-                    <td>{b.trip?.name || "N/A"}</td>
-                    <td>
-                      <button onClick={() => handleEditBooking(b)}>Edit</button>
-                      <button onClick={() => handleDeleteBooking(b.id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {bookings.map((b) => {
+                  const isCancelled =
+                    b.bookingStatus === "CANCELLED" ||
+                    b.status === "CANCELLED" ||
+                    !!b.cancelReason;
+
+                  return (
+                    <tr key={b.id} className={isCancelled ? "row-booking-cancelled" : ""}>
+                      <td>
+                        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>#{b.id}</span>
+                      </td>
+                      <td>
+                        <strong>{b.name}</strong>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{b.email}</div>
+                      </td>
+                      <td>{b.safariDate}</td>
+                      <td>
+                        <span className="badge-duration">
+                          {b.timeSlot || "08:00 AM - 10:00 AM"}
+                        </span>
+                      </td>
+                      <td>
+                        {b.scheduleId ? (
+                          <span
+                            style={{
+                              background: "rgba(56, 189, 248, 0.15)",
+                              color: "#38bdf8",
+                              border: "1px solid rgba(56, 189, 248, 0.3)",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              fontFamily: "var(--font-mono)",
+                            }}
+                            title="Linked to Master Safari Schedule"
+                          >
+                            #{b.scheduleId}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Custom</span>
+                        )}
+                      </td>
+                      <td>
+                        {b.adults}A, {b.children}C
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginLeft: "4px" }}>
+                          ({b.passengers || b.adults + b.children})
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 700, color: "var(--amber-light)" }}>
+                        LKR {Number(b.totalPrice || 0).toLocaleString()}
+                      </td>
+                      <td>{b.boat?.name || "N/A"}</td>
+                      <td>{b.trip?.name || "N/A"}</td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            background: b.paymentMethod === "cash" ? "rgba(16, 185, 129, 0.12)" : "rgba(147, 51, 234, 0.12)",
+                            color: b.paymentMethod === "cash" ? "var(--emerald)" : "#c084fc",
+                            border: `1px solid ${b.paymentMethod === "cash" ? "rgba(16, 185, 129, 0.3)" : "rgba(147, 51, 234, 0.3)"}`,
+                          }}
+                        >
+                          {b.paymentMethod || "CASH"}
+                        </span>
+                      </td>
+                      <td>
+                        {isCancelled ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                background: "rgba(244, 63, 94, 0.15)",
+                                color: "#f43f5e",
+                                border: "1px solid rgba(244, 63, 94, 0.35)",
+                                padding: "3px 8px",
+                                borderRadius: "12px",
+                                fontSize: "0.72rem",
+                                fontWeight: 800,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.03em",
+                              }}
+                            >
+                              🚫 CANCELLED
+                            </span>
+                            {b.cancelReason && (
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  color: "#fb7185",
+                                  maxWidth: "160px",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                                title={b.cancelReason}
+                              >
+                                {b.cancelReason}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              background: "rgba(16, 185, 129, 0.12)",
+                              color: "var(--emerald)",
+                              border: "1px solid rgba(16, 185, 129, 0.3)",
+                              padding: "3px 8px",
+                              borderRadius: "12px",
+                              fontSize: "0.72rem",
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            🟢 CONFIRMED
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <button onClick={() => handleEditBooking(b)}>Edit</button>
+                        {!isCancelled && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickCancelBooking(b)}
+                            style={{
+                              background: "rgba(244, 63, 94, 0.15)",
+                              color: "#f43f5e",
+                              borderColor: "rgba(244, 63, 94, 0.3)",
+                            }}
+                            title="Cancel booking with operational reason"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <button onClick={() => handleDeleteBooking(b.id)}>Delete</button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
 
           {/* Form */}
           <div className="booking-form">
-            <h3>{bookingForm.id ? "Update Booking" : "Add Booking"}</h3>
+            <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+              <h3 style={{ margin: 0 }}>
+                {bookingForm.id ? `✏️ Update Reservation #${bookingForm.id}` : "➕ Add Booking Reservation"}
+              </h3>
+              {bookingForm.safariDate && (
+                <div style={{ fontSize: "0.82rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                  {loadingAdminSchedules ? (
+                    <span style={{ color: "var(--amber-light)" }}>🔍 Checking Master Schedules...</span>
+                  ) : bookingForm.scheduleId ? (
+                    <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--emerald)", padding: "4px 10px", borderRadius: "12px", border: "1px solid rgba(16, 185, 129, 0.3)", fontWeight: 700 }}>
+                      ⚡ Linked to Master Schedule #{bookingForm.scheduleId}
+                    </span>
+                  ) : (
+                    <span style={{ background: "rgba(245, 158, 11, 0.12)", color: "var(--amber-light)", padding: "4px 10px", borderRadius: "12px", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                      ℹ️ Custom / Unscheduled Departure
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             <input
               name="name"
               value={bookingForm.name}
               onChange={handleBookingChange}
-              placeholder="Name"
+              placeholder="Passenger Name"
               required
             />
             <input
               name="email"
               value={bookingForm.email}
               onChange={handleBookingChange}
-              placeholder="Email"
+              placeholder="Email Address"
               required
             />
+
+            <select
+              name="tripId"
+              value={bookingForm.tripId}
+              onChange={handleBookingChange}
+              required
+            >
+              <option value="">Select Trip Package</option>
+              {trips.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.type}) — Adult: LKR {Number(t.adultPrice || 0).toLocaleString()} | Child: LKR {Number(t.childPrice || 0).toLocaleString()}
+                </option>
+              ))}
+            </select>
+
             <input
               type="date"
               name="safariDate"
@@ -612,6 +839,34 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               onChange={handleBookingChange}
               required
             />
+
+            <select
+              name="timeSlot"
+              value={bookingForm.timeSlot}
+              onChange={handleBookingChange}
+              required
+            >
+              {TIME_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  🕒 {slot}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="boatId"
+              value={bookingForm.boatId}
+              onChange={handleBookingChange}
+              required
+            >
+              <option value="">Select Assigned Boat</option>
+              {boats.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.boatType}) — LKR {Number(b.price || 0).toLocaleString()}
+                </option>
+              ))}
+            </select>
+
             <input
               type="number"
               min="1"
@@ -629,6 +884,37 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               onChange={handleBookingChange}
               placeholder="Children"
             />
+
+            <select
+              name="paymentMethod"
+              value={bookingForm.paymentMethod}
+              onChange={handleBookingChange}
+            >
+              <option value="cash">💵 Cash on Arrival</option>
+              <option value="card">💳 Credit/Debit Card</option>
+              <option value="paypal">🅿️ PayPal</option>
+            </select>
+
+            <select
+              name="bookingStatus"
+              value={bookingForm.bookingStatus}
+              onChange={handleBookingChange}
+            >
+              <option value="CONFIRMED">🟢 Status: CONFIRMED</option>
+              <option value="CANCELLED">🚫 Status: CANCELLED</option>
+            </select>
+
+            {bookingForm.bookingStatus === "CANCELLED" && (
+              <input
+                name="cancelReason"
+                value={bookingForm.cancelReason}
+                onChange={handleBookingChange}
+                placeholder="Cancellation Reason (e.g. Weather, Maintenance, Tourist request)"
+                style={{ flex: "2", minWidth: "260px", borderColor: "#f43f5e" }}
+                required
+              />
+            )}
+
             <div className="total-price-wrapper">
               <input
                 type="number"
@@ -645,34 +931,9 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               />
               <span className="auto-calc-badge">⚡ Auto-calculated</span>
             </div>
-            <select
-              name="boatId"
-              value={bookingForm.boatId}
-              onChange={handleBookingChange}
-              required
-            >
-              <option value="">Select Boat</option>
-              {boats.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} ({b.boatType}) — LKR {Number(b.price || 0).toLocaleString()}
-                </option>
-              ))}
-            </select>
-            <select
-              name="tripId"
-              value={bookingForm.tripId}
-              onChange={handleBookingChange}
-              required
-            >
-              <option value="">Select Trip</option>
-              {trips.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.type}) — Adult: LKR {Number(t.adultPrice || 0).toLocaleString()} | Child: LKR {Number(t.childPrice || 0).toLocaleString()}
-                </option>
-              ))}
-            </select>
+
             <button onClick={handleSaveBooking}>
-              {bookingForm.id ? "Update" : "Add"}
+              {bookingForm.id ? "Update Reservation" : "Add Reservation"}
             </button>
             {bookingForm.id && (
               <button
@@ -684,15 +945,21 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                     name: "",
                     email: "",
                     safariDate: "",
-                    adults: "",
-                    children: "",
+                    timeSlot: "08:00 AM - 10:00 AM",
+                    scheduleId: null,
+                    adults: "1",
+                    children: "0",
                     totalPrice: "",
                     boatId: "",
                     tripId: "",
+                    paymentMethod: "cash",
+                    paymentStatus: "CONFIRMED",
+                    bookingStatus: "CONFIRMED",
+                    cancelReason: "",
                   })
                 }
               >
-                Cancel
+                Cancel Edit
               </button>
             )}
 

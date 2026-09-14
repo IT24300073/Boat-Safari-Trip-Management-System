@@ -385,6 +385,12 @@
   opacity: 0.92;
 }
 
+.booking-card.card-cancelled {
+  border-left: 5px solid #f43f5e;
+  border-color: rgba(244, 63, 94, 0.35);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.05) 0%, var(--bg-card) 60%);
+}
+
 /* Card Top Row */
 .card-top-row {
   display: flex;
@@ -452,6 +458,112 @@
   background: rgba(148, 163, 184, 0.15);
   color: var(--text-secondary);
   border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.status-cancelled {
+  background: rgba(244, 63, 94, 0.18);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.2);
+}
+
+/* --- Booking Cancellation Banner --- */
+.booking-cancellation-card-banner {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(225, 29, 72, 0.04) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(244, 63, 94, 0.08);
+}
+
+.cancellation-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cancellation-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(244, 63, 94, 0.25);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.cancellation-dot-pulse {
+  width: 6px;
+  height: 6px;
+  background: #f43f5e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #f43f5e;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.cancellation-source-tag {
+  font-size: 0.75rem;
+  color: #fda4af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cancellation-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cancellation-banner-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.cancellation-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cancellation-heading {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fda4af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cancellation-reason-quote {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #f43f5e;
+}
+
+.cancellation-subtext {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-top: 4px;
 }
 
 .booking-ref-badge {

@@ -102,12 +102,42 @@ function SafariScheduleManager() {
   const [selectedCancelReason, setSelectedCancelReason] = useState("⛈️ Adverse Weather / Heavy Rain");
   const [customCancelReason, setCustomCancelReason] = useState("");
 
-  const cancelReasonPresets = [
-    "⛈️ Adverse Weather / Heavy Rain",
-    "🛠️ Sudden Boat Maintenance",
-    "🌊 High Water Level / River Safety Warning",
-    "👤 Customer Request / Reschedule",
-    "✏️ Custom Reason",
+  const cancelReasons = [
+    {
+      value: "⛈️ Adverse Weather / Heavy Rain",
+      icon: "⛈️",
+      label: "Adverse Weather / Heavy Rain",
+      badge: "Weather Alert",
+      desc: "Monsoon storms, lightning, or heavy downpour making river navigation unsafe.",
+    },
+    {
+      value: "🛠️ Sudden Boat Maintenance",
+      icon: "🛠️",
+      label: "Sudden Boat Maintenance",
+      badge: "Vessel Inspection",
+      desc: "Engine inspection, rudder check, or critical safety equipment repair required.",
+    },
+    {
+      value: "🌊 High Water Level / River Safety Warning",
+      icon: "🌊",
+      label: "High Water Level / River Safety Warning",
+      badge: "River Safety",
+      desc: "Water level or current speed exceeds authorized safe safari parameters.",
+    },
+    {
+      value: "👤 Customer Request / Reschedule",
+      icon: "👤",
+      label: "Customer Request / Reschedule",
+      badge: "Guest Request",
+      desc: "Charter guest requested delay, cancellation, or schedule rescheduling.",
+    },
+    {
+      value: "✏️ Custom Reason",
+      icon: "✏️",
+      label: "Custom Operational Reason",
+      badge: "Custom",
+      desc: "Specify a custom cancellation message to be delivered to all booked tourists.",
+    },
   ];
 
   // Sort and filter schedules according to date (with operational time slot tie-breaker)
@@ -429,48 +459,144 @@ function SafariScheduleManager() {
           </form>
         </div>
 
-        {/* Cancel Reason Modal */}
+        {/* Modern Cancel Reason Modal */}
         {cancellingItem && (
-          <div className="modal-backdrop">
+          <div
+            className="modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setCancellingItem(null);
+                setCustomCancelReason("");
+              }
+            }}
+          >
             <div className="cancel-modal">
-              <h3>🚫 Cancel Safari Schedule #{cancellingItem.id}</h3>
-              <p>
-                Cancelling trip <strong>"{cancellingItem.tripName}"</strong> will unlock Boat{" "}
-                <strong>"{cancellingItem.boatName}"</strong> and Guide <strong>"{cancellingItem.guideName}"</strong>.
-              </p>
-
-              <div className="form-group">
-                <label>Select Reason for Cancellation *</label>
-                <select
-                  value={selectedCancelReason}
-                  onChange={(e) => setSelectedCancelReason(e.target.value)}
-                >
-                  {cancelReasonPresets.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+              <div className="cancel-modal-header">
+                <div className="cancel-badge-row">
+                  <span className="cancel-modal-badge">EXPEDITION CANCELLATION</span>
+                  <span className="cancel-slot-id">Schedule #{cancellingItem.id}</span>
+                </div>
+                <h3>Cancel Safari Departure</h3>
+                <p className="cancel-modal-desc">
+                  Cancelling will alert all booked guests with your reason and immediately unlock{" "}
+                  <strong>{cancellingItem.boatName || "Boat"}</strong> & Guide{" "}
+                  <strong>{cancellingItem.guideName || "Guide"}</strong>.
+                </p>
               </div>
 
+              {/* Expedition Summary Pill */}
+              <div className="cancel-expedition-summary">
+                <div className="summary-pill-item">
+                  <span className="summary-pill-label">Trip Package:</span>
+                  <span className="summary-pill-val">{cancellingItem.tripName}</span>
+                </div>
+                <div className="summary-pill-item">
+                  <span className="summary-pill-label">Schedule Slot:</span>
+                  <span className="summary-pill-val">
+                    📅 {cancellingItem.scheduleDate} • ⏰ {cancellingItem.timeSlot}
+                  </span>
+                </div>
+              </div>
+
+              {/* Modern Selectable Reason Cards */}
+              <div className="cancel-reasons-group">
+                <div className="reasons-group-label">
+                  <span>Select Reason for Cancellation</span>
+                  <span className="required-star">* Required for tourist alerts</span>
+                </div>
+
+                <div className="reasons-card-list">
+                  {cancelReasons.map((r) => {
+                    const isSelected = selectedCancelReason === r.value;
+                    return (
+                      <div
+                        key={r.value}
+                        className={`reason-card-tile ${isSelected ? "selected" : ""}`}
+                        onClick={() => setSelectedCancelReason(r.value)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setSelectedCancelReason(r.value);
+                          }
+                        }}
+                      >
+                        <div className="reason-card-left">
+                          <span className="reason-tile-icon">{r.icon}</span>
+                          <div className="reason-tile-text">
+                            <div className="reason-tile-head">
+                              <span className="reason-tile-title">{r.label}</span>
+                              <span className="reason-tile-badge">{r.badge}</span>
+                            </div>
+                            <span className="reason-tile-desc">{r.desc}</span>
+                          </div>
+                        </div>
+
+                        <div className="reason-tile-radio">
+                          <div className={`custom-radio-circle ${isSelected ? "checked" : ""}`}>
+                            {isSelected && <span className="radio-inner-dot"></span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Reason Textarea (When Custom Reason is selected) */}
               {selectedCancelReason === "✏️ Custom Reason" && (
-                <div className="form-group">
-                  <label>Specify Custom Reason</label>
-                  <input
-                    type="text"
-                    placeholder="Enter custom cancellation notes..."
+                <div className="custom-reason-input-box">
+                  <label htmlFor="customCancelReason">Specify Custom Operational Reason *</label>
+                  <textarea
+                    id="customCancelReason"
+                    rows={2}
+                    placeholder="Enter specific cancellation reason that will be sent to all booked tourists..."
                     value={customCancelReason}
                     onChange={(e) => setCustomCancelReason(e.target.value)}
+                    className="custom-reason-textarea"
+                    autoFocus
                   />
                 </div>
               )}
 
+              {/* Live Tourist Notification Alert Preview */}
+              <div className="notification-preview-card">
+                <div className="preview-card-header">
+                  <span className="preview-icon">🔔</span>
+                  <span className="preview-title">Tourist Alert Preview</span>
+                  <span className="preview-badge">Auto-Sent</span>
+                </div>
+                <p className="preview-text">
+                  "Dear Guest, your safari <strong>'{cancellingItem.tripName}'</strong> on{" "}
+                  <strong>{cancellingItem.scheduleDate} ({cancellingItem.timeSlot})</strong> has been cancelled due to:{" "}
+                  <span className="preview-reason-highlight">
+                    {selectedCancelReason === "✏️ Custom Reason"
+                      ? (customCancelReason.trim() || "[Custom reason will appear here]")
+                      : selectedCancelReason}
+                  </span>
+                  . Please contact support or reschedule."
+                </p>
+              </div>
+
+              {/* Action Buttons */}
               <div className="modal-button-row">
-                <button className="btn-confirm-cancel" onClick={confirmCancelSchedule}>
-                  Confirm Cancellation & Release Slot
+                <button
+                  type="button"
+                  className="btn-confirm-cancel"
+                  onClick={confirmCancelSchedule}
+                  disabled={selectedCancelReason === "✏️ Custom Reason" && !customCancelReason.trim()}
+                >
+                  Confirm Cancellation & Release Resources ➔
                 </button>
-                <button className="btn-close-modal" onClick={() => setCancellingItem(null)}>
-                  Close
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => {
+                    setCancellingItem(null);
+                    setCustomCancelReason("");
+                  }}
+                >
+                  Nevermind, Keep Schedule
                 </button>
               </div>
             </div>

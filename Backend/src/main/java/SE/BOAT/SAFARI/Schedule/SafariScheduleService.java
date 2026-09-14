@@ -107,6 +107,28 @@ public class SafariScheduleService {
 
             SafariSchedule saved = safariScheduleRepository.save(existing);
             notificationService.notifyAffectedTourists(saved, "SCHEDULE_CANCELLED", reasonStr);
+
+            // Synchronize all affected bookings to CANCELLED with the cancel reason
+            if (bookingRepository != null) {
+                List<SE.BOAT.SAFARI.Booking.Booking> allBookings = bookingRepository.findAll();
+                for (SE.BOAT.SAFARI.Booking.Booking b : allBookings) {
+                    boolean matchesScheduleId = b.getScheduleId() != null && b.getScheduleId().equals(saved.getId());
+                    boolean matchesDate = b.getSafariDate() != null && saved.getScheduleDate().equals(b.getSafariDate());
+                    boolean matchesSlot = saved.getTimeSlot() == null || b.getTimeSlot() == null ||
+                            saved.getTimeSlot().trim().equalsIgnoreCase(b.getTimeSlot().trim());
+                    boolean matchesBoat = b.getBoat() != null && b.getBoat().getId() == saved.getBoatId();
+                    boolean matchesTrip = b.getTrip() != null && saved.getTripName() != null &&
+                            b.getTrip().getName().equalsIgnoreCase(saved.getTripName());
+
+                    boolean isAffected = matchesScheduleId || (matchesDate && matchesSlot && (matchesBoat || matchesTrip));
+                    if (isAffected) {
+                        b.setBookingStatus("CANCELLED");
+                        b.setCancelReason(reasonStr);
+                        bookingRepository.save(b);
+                    }
+                }
+            }
+
             return saved;
         }
         return null;

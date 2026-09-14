@@ -189,6 +189,15 @@ function MyBookings() {
     }
   };
 
+  // Check if a booking is cancelled
+  const checkIsCancelled = (b) => {
+    return (
+      b.bookingStatus === "CANCELLED" ||
+      b.status === "CANCELLED" ||
+      Boolean(b.cancelReason && b.cancelReason.trim())
+    );
+  };
+
   // Classify a booking as 'upcoming', 'today', or 'past'
   const getBookingTiming = (bookingDate) => {
     if (!bookingDate) return "upcoming";
@@ -200,22 +209,31 @@ function MyBookings() {
   const metrics = useMemo(() => {
     let upcomingCount = 0;
     let pastCount = 0;
+    let cancelledCount = 0;
     let totalInvested = 0;
 
     bookings.forEach((b) => {
+      const isCancelled = checkIsCancelled(b);
       const timing = getBookingTiming(b.safariDate);
-      if (timing === "upcoming" || timing === "today") {
+
+      if (isCancelled) {
+        cancelledCount++;
+      } else if (timing === "upcoming" || timing === "today") {
         upcomingCount++;
       } else {
         pastCount++;
       }
-      totalInvested += Number(b.totalPrice) || 0;
+
+      if (!isCancelled) {
+        totalInvested += Number(b.totalPrice) || 0;
+      }
     });
 
     return {
       total: bookings.length,
       upcoming: upcomingCount,
       past: pastCount,
+      cancelled: cancelledCount,
       totalInvested,
     };
   }, [bookings, todayStr]);
@@ -225,12 +243,16 @@ function MyBookings() {
     return bookings
       .filter((b) => {
         const timing = getBookingTiming(b.safariDate);
+        const isCancelled = checkIsCancelled(b);
 
         // Tab filter
         if (activeTab === "upcoming") {
+          // Show upcoming and today bookings (including cancelled ones so user sees notice immediately)
           if (timing !== "upcoming" && timing !== "today") return false;
+        } else if (activeTab === "cancelled") {
+          if (!isCancelled) return false;
         } else if (activeTab === "past") {
-          if (timing !== "past") return false;
+          if (timing !== "past" || isCancelled) return false;
         }
 
         // Search term filter
@@ -241,13 +263,15 @@ function MyBookings() {
           const date = (b.safariDate || "").toLowerCase();
           const id = String(b.id || "");
           const txn = (b.transactionReference || "").toLowerCase();
+          const reason = (b.cancelReason || "").toLowerCase();
 
           return (
             tripName.includes(q) ||
             boatName.includes(q) ||
             date.includes(q) ||
             id.includes(q) ||
-            txn.includes(q)
+            txn.includes(q) ||
+            reason.includes(q)
           );
         }
 
@@ -333,18 +357,34 @@ function MyBookings() {
             </div>
           </div>
 
-          <div
-            className={`metric-card ${activeTab === "past" ? "metric-selected" : ""}`}
-            onClick={() => setActiveTab("past")}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="metric-icon-wrap icon-past">🚩</div>
-            <div className="metric-details">
-              <span className="metric-value">{metrics.past}</span>
-              <span className="metric-label">Past Adventures</span>
+          {metrics.cancelled > 0 ? (
+            <div
+              className={`metric-card ${activeTab === "cancelled" ? "metric-selected" : ""}`}
+              onClick={() => setActiveTab("cancelled")}
+              role="button"
+              tabIndex={0}
+              style={{ borderColor: activeTab === "cancelled" ? "#f43f5e" : "rgba(244, 63, 94, 0.3)" }}
+            >
+              <div className="metric-icon-wrap" style={{ background: "rgba(244, 63, 94, 0.15)", color: "#f43f5e" }}>🚫</div>
+              <div className="metric-details">
+                <span className="metric-value" style={{ color: "#f43f5e" }}>{metrics.cancelled}</span>
+                <span className="metric-label">Cancelled Safaris</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              className={`metric-card ${activeTab === "past" ? "metric-selected" : ""}`}
+              onClick={() => setActiveTab("past")}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="metric-icon-wrap icon-past">🚩</div>
+              <div className="metric-details">
+                <span className="metric-value">{metrics.past}</span>
+                <span className="metric-label">Past Adventures</span>
+              </div>
+            </div>
+          )}
 
           <div className="metric-card metric-static">
             <div className="metric-icon-wrap icon-money">💳</div>
@@ -367,6 +407,19 @@ function MyBookings() {
               <span>Upcoming Safaris</span>
               <span className="tab-badge">{metrics.upcoming}</span>
             </button>
+
+            {metrics.cancelled > 0 && (
+              <button
+                className={`booking-tab-btn ${activeTab === "cancelled" ? "active" : ""}`}
+                onClick={() => setActiveTab("cancelled")}
+                style={activeTab === "cancelled" ? { background: "#f43f5e", color: "#fff" } : { color: "#f43f5e" }}
+              >
+                <span>Cancelled</span>
+                <span className="tab-badge" style={{ background: "rgba(244, 63, 94, 0.2)", color: activeTab === "cancelled" ? "#fff" : "#f43f5e" }}>
+                  {metrics.cancelled}
+                </span>
+              </button>
+            )}
 
             <button
               className={`booking-tab-btn ${activeTab === "past" ? "active" : ""}`}
@@ -460,6 +513,7 @@ function MyBookings() {
           <div className="bookings-cards-list">
             {filteredBookings.map((b) => {
               const timing = getBookingTiming(b.safariDate);
+              const isCancelled = checkIsCancelled(b);
               const totalGuests =
                 b.passengers > 0 ? b.passengers : (b.adults || 0) + (b.children || 0);
 
@@ -467,7 +521,9 @@ function MyBookings() {
                 <div
                   key={b.id}
                   className={`booking-card ${
-                    timing === "today"
+                    isCancelled
+                      ? "card-cancelled"
+                      : timing === "today"
                       ? "card-today"
                       : timing === "upcoming"
                       ? "card-upcoming"
@@ -484,20 +540,28 @@ function MyBookings() {
                     </div>
 
                     <div className="card-status-tags">
-                      {timing === "today" && (
-                        <span className="status-badge status-today">
-                          🔥 Safari Today
+                      {isCancelled ? (
+                        <span className="status-badge status-cancelled">
+                          🚫 Cancelled
                         </span>
-                      )}
-                      {timing === "upcoming" && (
-                        <span className="status-badge status-upcoming">
-                          🟢 Upcoming
-                        </span>
-                      )}
-                      {timing === "past" && (
-                        <span className="status-badge status-completed">
-                          ✔️ Completed
-                        </span>
+                      ) : (
+                        <>
+                          {timing === "today" && (
+                            <span className="status-badge status-today">
+                              🔥 Safari Today
+                            </span>
+                          )}
+                          {timing === "upcoming" && (
+                            <span className="status-badge status-upcoming">
+                              🟢 Upcoming
+                            </span>
+                          )}
+                          {timing === "past" && (
+                            <span className="status-badge status-completed">
+                              ✔️ Completed
+                            </span>
+                          )}
+                        </>
                       )}
 
                       <span className="booking-ref-badge">
@@ -505,6 +569,34 @@ function MyBookings() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Operational Cancellation Banner */}
+                  {isCancelled && (
+                    <div className="booking-cancellation-card-banner">
+                      <div className="cancellation-banner-header">
+                        <div className="cancellation-pill-tag">
+                          <span className="cancellation-dot-pulse"></span>
+                          <span>EXPEDITION CANCELLED</span>
+                        </div>
+                        <span className="cancellation-source-tag">Operations Bulletin</span>
+                      </div>
+
+                      <div className="cancellation-banner-content">
+                        <span className="cancellation-banner-icon">⚠️</span>
+                        <div className="cancellation-text-block">
+                          <div className="cancellation-heading">
+                            Reason for Cancellation:
+                          </div>
+                          <div className="cancellation-reason-quote">
+                            "{b.cancelReason || "Adverse weather or river navigation restrictions"}"
+                          </div>
+                          <div className="cancellation-subtext">
+                            ℹ️ Your reservation is cancelled. Any collected payments are marked for refund, or you can contact Jetty Desk Operations to reschedule for an alternative date.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Card Main Body */}
                   <div className="card-main-grid">
@@ -589,7 +681,9 @@ function MyBookings() {
                               : "💳 Card Payment"}
                           </span>
                           <span className="payment-status-badge">
-                            {b.paymentStatus === "PAID_CONFIRMED" || !b.paymentStatus
+                            {isCancelled
+                              ? "Cancelled / Refundable"
+                              : b.paymentStatus === "PAID_CONFIRMED" || !b.paymentStatus
                               ? "Confirmed"
                               : b.paymentStatus}
                           </span>
@@ -611,7 +705,11 @@ function MyBookings() {
                   {/* Card Bottom / Actions */}
                   <div className="card-bottom-actions">
                     <div className="card-note">
-                      {timing === "upcoming" || timing === "today" ? (
+                      {isCancelled ? (
+                        <span style={{ color: "#fb7185" }}>
+                          ⚠️ Expedition cancelled. For urgent assistance or rescheduling: <strong>Aloka Safari Jetty (+94 77 123 4567)</strong>.
+                        </span>
+                      ) : timing === "upcoming" || timing === "today" ? (
                         <span>
                           📍 Boarding point: <strong>Aloka Safari Jetty, Balapitiya</strong>. Please arrive 15 min early.
                         </span>
@@ -630,23 +728,43 @@ function MyBookings() {
                         📄 Ticket / Invoice
                       </button>
 
-                      <button
-                        className="btn-card-edit"
-                        onClick={() => handleOpenEdit(b)}
-                        title="Modify reservation date or passengers"
-                      >
-                        ✏️ Edit
-                      </button>
+                      {isCancelled ? (
+                        <button
+                          className="btn-card-rebook"
+                          onClick={() => navigate("/booktrip")}
+                          style={{
+                            background: "linear-gradient(135deg, var(--amber-primary), var(--amber-hover))",
+                            color: "var(--text-dark)",
+                            fontWeight: 700,
+                            padding: "8px 16px",
+                            borderRadius: "var(--radius-sm)",
+                            border: "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          🔄 Rebook Safari
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            className="btn-card-edit"
+                            onClick={() => handleOpenEdit(b)}
+                            title="Modify reservation date or passengers"
+                          >
+                            ✏️ Edit
+                          </button>
 
-                      <button
-                        className="btn-card-delete"
-                        onClick={() => handleDeleteBooking(b.id, b.trip?.name, b.safariDate)}
-                        title="Cancel this reservation"
-                      >
-                        🗑️ Cancel
-                      </button>
+                          <button
+                            className="btn-card-delete"
+                            onClick={() => handleDeleteBooking(b.id, b.trip?.name, b.safariDate)}
+                            title="Cancel this reservation"
+                          >
+                            🗑️ Cancel
+                          </button>
+                        </>
+                      )}
 
-                      {timing === "past" && (
+                      {timing === "past" && !isCancelled && (
                         <button
                           className="btn-card-feedback"
                           onClick={() => navigate("/feedback")}

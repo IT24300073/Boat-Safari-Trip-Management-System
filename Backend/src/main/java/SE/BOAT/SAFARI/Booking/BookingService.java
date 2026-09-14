@@ -110,6 +110,19 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    private void syncScheduleStatus(Booking booking) {
+        if (booking != null && booking.getScheduleId() != null && safariScheduleRepository != null) {
+            safariScheduleRepository.findById(booking.getScheduleId()).ifPresent(sched -> {
+                if ("CANCELLED".equalsIgnoreCase(sched.getStatus())) {
+                    booking.setBookingStatus("CANCELLED");
+                    if (booking.getCancelReason() == null || booking.getCancelReason().trim().isEmpty()) {
+                        booking.setCancelReason(sched.getCancelReason() != null ? sched.getCancelReason() : "Cancelled by Safari Operations");
+                    }
+                }
+            });
+        }
+    }
+
     public List<Booking> getBookings(String name, String email, String date, String venueName) {
         // Build specification filters
         Specification<Booking> spec = null;
@@ -127,6 +140,7 @@ public class BookingService {
             bookings = bookingRepository.findAll(spec);
         }
 
+        bookings.forEach(this::syncScheduleStatus);
         return bookings;
     }
 
@@ -134,11 +148,17 @@ public class BookingService {
         if (email == null || email.trim().isEmpty()) {
             return java.util.Collections.emptyList();
         }
-        return bookingRepository.findByEmailIgnoreCaseOrderBySafariDateDesc(email.trim());
+        List<Booking> bookings = bookingRepository.findByEmailIgnoreCaseOrderBySafariDateDesc(email.trim());
+        bookings.forEach(this::syncScheduleStatus);
+        return bookings;
     }
 
     public Booking getBookingById(int id) {
-        return bookingRepository.findById(id).orElse(null);
+        Booking b = bookingRepository.findById(id).orElse(null);
+        if (b != null) {
+            syncScheduleStatus(b);
+        }
+        return b;
     }
 
     public Booking updateBooking(int id, Booking booking) {
@@ -148,6 +168,8 @@ public class BookingService {
                     existing.setName(booking.getName());
                     existing.setEmail(booking.getEmail());
                     existing.setSafariDate(booking.getSafariDate());
+                    if (booking.getTimeSlot() != null) existing.setTimeSlot(booking.getTimeSlot());
+                    if (booking.getScheduleId() != null) existing.setScheduleId(booking.getScheduleId());
                     int pass = booking.getPassengers() > 0 ? booking.getPassengers() : (booking.getAdults() + booking.getChildren());
                     existing.setPassengers(pass);
                     existing.setBoat(booking.getBoat());
@@ -155,6 +177,19 @@ public class BookingService {
                     existing.setAdults(booking.getAdults());
                     existing.setChildren(booking.getChildren());
                     existing.setTotalPrice(booking.getTotalPrice());
+                    if (booking.getPaymentMethod() != null) existing.setPaymentMethod(booking.getPaymentMethod());
+                    if (booking.getPaymentStatus() != null) existing.setPaymentStatus(booking.getPaymentStatus());
+                    if (booking.getBookingStatus() != null) existing.setBookingStatus(booking.getBookingStatus());
+                    if (booking.getCancelReason() != null) existing.setCancelReason(booking.getCancelReason());
+                    return bookingRepository.save(existing);
+                }).orElse(null);
+    }
+
+    public Booking cancelBooking(int id, String reason) {
+        return bookingRepository.findById(id)
+                .map(existing -> {
+                    existing.setBookingStatus("CANCELLED");
+                    existing.setCancelReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Cancelled by Admin / Operations");
                     return bookingRepository.save(existing);
                 }).orElse(null);
     }

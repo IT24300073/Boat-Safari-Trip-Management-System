@@ -101,14 +101,29 @@ function Invoice() {
 
         <div className="invoice-divider"></div>
 
-        {/* Instant Confirmation Banner */}
-        <div className="instant-confirmation-banner">
-          <span className="confirmation-icon">🎉</span>
-          <div>
-            <strong>Instant Online Confirmation & Seat Guaranteed</strong>
-            <p>Your payment has been processed securely and your boat safari seats are reserved.</p>
+        {/* Instant Confirmation or Cancellation Banner */}
+        {booking.bookingStatus === "CANCELLED" || booking.status === "CANCELLED" || Boolean(booking.cancelReason) ? (
+          <div className="instant-confirmation-banner" style={{ background: "rgba(244, 63, 94, 0.15)", borderColor: "rgba(244, 63, 94, 0.45)" }}>
+            <span className="confirmation-icon" style={{ filter: "none" }}>🚫</span>
+            <div>
+              <strong style={{ color: "#f43f5e" }}>RESERVATION CANCELLED BY OPERATIONS</strong>
+              <p style={{ color: "#fecdd3", marginTop: "4px" }}>
+                <strong>Reason:</strong> {booking.cancelReason || "Adverse weather or river navigation conditions. Cancelled for passenger safety."}
+              </p>
+              <p style={{ fontSize: "0.82rem", color: "#fda4af", marginTop: "2px" }}>
+                Refund status: Processing. For questions or rescheduling, present Invoice #{booking.id} to jetty operations.
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="instant-confirmation-banner">
+            <span className="confirmation-icon">🎉</span>
+            <div>
+              <strong>Instant Online Confirmation & Seat Guaranteed</strong>
+              <p>Your payment has been processed securely and your boat safari seats are reserved.</p>
+            </div>
+          </div>
+        )}
 
         {/* Customer & Trip Details Grid */}
         <div className="invoice-details-grid">
@@ -118,7 +133,14 @@ function Invoice() {
             <p><strong>Email Address:</strong> {booking.email}</p>
             <p><strong>Transaction Ref:</strong> <span className="txn-ref-badge">{booking.transactionReference || `TXN-${booking.id}84920`}</span></p>
             <p><strong>Payment Method:</strong> {booking.paymentMethod ? booking.paymentMethod.toUpperCase() : "CREDIT/DEBIT CARD"}</p>
-            <p><strong>Payment Status:</strong> <span className="status-paid">✓ Paid & Confirmed (Instant)</span></p>
+            <p>
+              <strong>Payment Status:</strong>{" "}
+              {booking.bookingStatus === "CANCELLED" || Boolean(booking.cancelReason) ? (
+                <span style={{ color: "#f43f5e", fontWeight: 700 }}>🚫 Cancelled / Refund in Progress</span>
+              ) : (
+                <span className="status-paid">✓ Paid & Confirmed (Instant)</span>
+              )}
+            </p>
           </div>
 
           <div className="details-box">

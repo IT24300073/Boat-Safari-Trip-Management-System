@@ -62,6 +62,13 @@ public class BookingController {
         }
     }
 
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelBooking(@PathVariable int id, @RequestBody(required = false) Map<String, String> body) {
+        String reason = body != null && body.containsKey("reason") ? body.get("reason") : "Cancelled by Staff / Operations";
+        Booking cancelled = bookingService.cancelBooking(id, reason);
+        return cancelled != null ? ResponseEntity.ok(cancelled) : ResponseEntity.notFound().build();
+    }
+
     @DeleteMapping("/{id}")
     public void deleteBooking(@PathVariable int id) {
         bookingService.deleteBooking(id);

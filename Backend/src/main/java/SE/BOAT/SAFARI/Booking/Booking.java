@@ -63,6 +63,12 @@ public class Booking {
 
     private String transactionReference; // e.g. "TXN-847291039"
 
+    @Column(name = "booking_status")
+    private String bookingStatus = "CONFIRMED";
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 
@@ -71,4 +77,10 @@ public class Booking {
 
     public String getTransactionReference() { return transactionReference; }
     public void setTransactionReference(String transactionReference) { this.transactionReference = transactionReference; }
+
+    public String getBookingStatus() { return bookingStatus; }
+    public void setBookingStatus(String bookingStatus) { this.bookingStatus = bookingStatus; }
+
+    public String getCancelReason() { return cancelReason; }
+    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
 }
