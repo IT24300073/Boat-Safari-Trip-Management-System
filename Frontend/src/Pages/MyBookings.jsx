@@ -116,7 +116,7 @@ function MyBookings() {
       safariDate: b.safariDate || todayStr,
       adults: b.adults || 1,
       children: b.children || 0,
-      boatId: b.boat?.id ? String(b.boat.id) : (boats.length > 0 ? String(boats[0].id) : ""),
+      boatId: b.boat?.id ? String(b.boat.id) : "",
     });
     setEditError("");
   };
@@ -129,8 +129,9 @@ function MyBookings() {
   const handleSaveEdit = async () => {
     if (!editingBooking) return;
 
-    const selectedBoat = boats.find((b) => b.id === Number(editFormData.boatId)) || editingBooking.boat;
-    const boatCapacity = selectedBoat?.capacity || 10;
+    // Boat is restricted to the booking's assigned boat
+    const assignedBoat = editingBooking.boat;
+    const boatCapacity = assignedBoat?.capacity || 10;
     const totalPassengers = Number(editFormData.adults) + Number(editFormData.children);
 
     if (!editFormData.safariDate) {
@@ -142,22 +143,18 @@ function MyBookings() {
       return;
     }
     if (totalPassengers > boatCapacity) {
-      setEditError(`Total passengers (${totalPassengers}) exceed boat capacity (${boatCapacity}).`);
-      return;
-    }
-    if (!editFormData.boatId) {
-      setEditError("Please select a boat.");
+      setEditError(`Total passengers (${totalPassengers}) exceed assigned boat capacity (${boatCapacity} seats).`);
       return;
     }
 
     setSavingEdit(true);
     setEditError("");
 
-    // Calculate updated price
+    // Calculate updated price keeping the assigned boat price
     const matchedTrip = editingBooking.trip;
     const adultRate = matchedTrip?.adultPrice || 0;
     const childRate = matchedTrip?.childPrice || 0;
-    const boatRate = selectedBoat?.price || 0;
+    const boatRate = assignedBoat?.price || 0;
     const recalculatedTotal =
       Number(editFormData.adults) * adultRate +
       Number(editFormData.children) * childRate +
@@ -170,7 +167,7 @@ function MyBookings() {
       children: Number(editFormData.children),
       passengers: totalPassengers,
       totalPrice: recalculatedTotal > 0 ? recalculatedTotal : editingBooking.totalPrice,
-      boat: { id: Number(editFormData.boatId) },
+      boat: assignedBoat ? { id: assignedBoat.id } : null,
       trip: matchedTrip ? { id: matchedTrip.id } : null,
     };
 
@@ -182,8 +179,8 @@ function MyBookings() {
       fetchUserBookings();
     } catch (err) {
       console.error("Failed to update booking:", err);
-      const msg = err.response?.data?.message || "Boat assignment conflicts with an existing booking or maintenance status.";
-      setEditError("⚠️ Assignment Conflict: " + msg);
+      const msg = err.response?.data?.message || "Booking update conflicts with operational schedule.";
+      setEditError("⚠️ Update Conflict: " + msg);
     } finally {
       setSavingEdit(false);
     }
@@ -257,21 +254,32 @@ function MyBookings() {
 
         // Search term filter
         if (searchTerm.trim()) {
-          const q = searchTerm.toLowerCase();
+          const q = searchTerm.toLowerCase().trim();
+          const name = (b.name || "").toLowerCase();
+          const email = (b.email || "").toLowerCase();
           const tripName = (b.trip?.name || "").toLowerCase();
           const boatName = (b.boat?.name || "").toLowerCase();
           const date = (b.safariDate || "").toLowerCase();
+          const timeSlot = (b.timeSlot || "").toLowerCase();
           const id = String(b.id || "");
           const txn = (b.transactionReference || "").toLowerCase();
           const reason = (b.cancelReason || "").toLowerCase();
+          const status = (b.bookingStatus || b.status || "").toLowerCase();
+          const payment = (b.paymentMethod || "").toLowerCase();
 
           return (
+            name.includes(q) ||
+            email.includes(q) ||
             tripName.includes(q) ||
             boatName.includes(q) ||
             date.includes(q) ||
+            timeSlot.includes(q) ||
             id.includes(q) ||
+            `#${id}`.includes(q) ||
             txn.includes(q) ||
-            reason.includes(q)
+            reason.includes(q) ||
+            status.includes(q) ||
+            payment.includes(q)
           );
         }
 
@@ -287,6 +295,110 @@ function MyBookings() {
         return 0;
       });
   }, [bookings, activeTab, searchTerm, sortBy, todayStr]);
+
+  const totalSearchMatches = useMemo(() => {
+    if (!searchTerm.trim()) return bookings.length;
+    const q = searchTerm.toLowerCase().trim();
+    return bookings.filter((b) => {
+      const name = (b.name || "").toLowerCase();
+      const email = (b.email || "").toLowerCase();
+      const tripName = (b.trip?.name || "").toLowerCase();
+      const boatName = (b.boat?.name || "").toLowerCase();
+      const date = (b.safariDate || "").toLowerCase();
+      const timeSlot = (b.timeSlot || "").toLowerCase();
+      const id = String(b.id || "");
+      const txn = (b.transactionReference || "").toLowerCase();
+      const reason = (b.cancelReason || "").toLowerCase();
+      const status = (b.bookingStatus || b.status || "").toLowerCase();
+      const payment = (b.paymentMethod || "").toLowerCase();
+
+      return (
+        name.includes(q) ||
+        email.includes(q) ||
+        tripName.includes(q) ||
+        boatName.includes(q) ||
+        date.includes(q) ||
+        timeSlot.includes(q) ||
+        id.includes(q) ||
+        `#${id}`.includes(q) ||
+        txn.includes(q) ||
+        reason.includes(q) ||
+        status.includes(q) ||
+        payment.includes(q)
+      );
+    }).length;
+  }, [bookings, searchTerm]);
+
+  // Dynamic match counts per tab when search query is typed
+  const tabCounts = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return {
+        upcoming: metrics.upcoming,
+        cancelled: metrics.cancelled,
+        past: metrics.past,
+        all: metrics.total,
+      };
+    }
+    const q = searchTerm.toLowerCase().trim();
+    let upcoming = 0;
+    let cancelled = 0;
+    let past = 0;
+    let all = 0;
+
+    bookings.forEach((b) => {
+      const isCancelled = checkIsCancelled(b);
+      const timing = getBookingTiming(b.safariDate);
+
+      const name = (b.name || "").toLowerCase();
+      const email = (b.email || "").toLowerCase();
+      const tripName = (b.trip?.name || "").toLowerCase();
+      const boatName = (b.boat?.name || "").toLowerCase();
+      const date = (b.safariDate || "").toLowerCase();
+      const timeSlot = (b.timeSlot || "").toLowerCase();
+      const id = String(b.id || "");
+      const txn = (b.transactionReference || "").toLowerCase();
+      const reason = (b.cancelReason || "").toLowerCase();
+      const status = (b.bookingStatus || b.status || "").toLowerCase();
+      const payment = (b.paymentMethod || "").toLowerCase();
+
+      const matches =
+        name.includes(q) ||
+        email.includes(q) ||
+        tripName.includes(q) ||
+        boatName.includes(q) ||
+        date.includes(q) ||
+        timeSlot.includes(q) ||
+        id.includes(q) ||
+        `#${id}`.includes(q) ||
+        txn.includes(q) ||
+        reason.includes(q) ||
+        status.includes(q) ||
+        payment.includes(q);
+
+      if (matches) {
+        all++;
+        if (isCancelled) {
+          cancelled++;
+        } else if (timing === "upcoming" || timing === "today") {
+          upcoming++;
+        } else {
+          past++;
+        }
+      }
+    });
+
+    return { upcoming, cancelled, past, all };
+  }, [bookings, searchTerm, metrics, todayStr]);
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!searchTerm.trim()) return;
+
+    // Submitting a search switches to 'all' so user sees all matching reservations
+    if (activeTab !== "all") {
+      setActiveTab("all");
+    }
+  };
 
   const formatDateDisplay = (dateString) => {
     if (!dateString) return "Date Pending";
@@ -405,7 +517,7 @@ function MyBookings() {
               onClick={() => setActiveTab("upcoming")}
             >
               <span>Upcoming Safaris</span>
-              <span className="tab-badge">{metrics.upcoming}</span>
+              <span className="tab-badge">{tabCounts.upcoming}</span>
             </button>
 
             {metrics.cancelled > 0 && (
@@ -416,7 +528,7 @@ function MyBookings() {
               >
                 <span>Cancelled</span>
                 <span className="tab-badge" style={{ background: "rgba(244, 63, 94, 0.2)", color: activeTab === "cancelled" ? "#fff" : "#f43f5e" }}>
-                  {metrics.cancelled}
+                  {tabCounts.cancelled}
                 </span>
               </button>
             )}
@@ -426,7 +538,7 @@ function MyBookings() {
               onClick={() => setActiveTab("past")}
             >
               <span>Past Safaris</span>
-              <span className="tab-badge">{metrics.past}</span>
+              <span className="tab-badge">{tabCounts.past}</span>
             </button>
 
             <button
@@ -434,30 +546,44 @@ function MyBookings() {
               onClick={() => setActiveTab("all")}
             >
               <span>All Bookings</span>
-              <span className="tab-badge">{metrics.total}</span>
+              <span className="tab-badge">{tabCounts.all}</span>
             </button>
           </div>
 
           <div className="bookings-filters-group">
-            <div className="search-input-wrapper">
-              <span className="search-icon">🔍</span>
-              <input
-                type="text"
-                placeholder="Search trip, boat, date..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bookings-search-input"
-              />
-              {searchTerm && (
+            <form className="search-form-wrap" onSubmit={handleSearchSubmit}>
+              <div className="search-input-wrapper">
                 <button
-                  className="clear-search-btn"
-                  onClick={() => setSearchTerm("")}
-                  title="Clear search"
+                  type="submit"
+                  className="search-icon-btn"
+                  title="Click to search bookings"
+                  aria-label="Search"
                 >
-                  ✕
+                  🔍
                 </button>
-              )}
-            </div>
+                <input
+                  type="text"
+                  placeholder="Search trip, name, boat, date, #id..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bookings-search-input"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="clear-search-btn"
+                    onClick={() => setSearchTerm("")}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <button type="submit" className="btn-search-action" title="Submit Search">
+                Search
+              </button>
+            </form>
 
             <select
               value={sortBy}
@@ -491,26 +617,72 @@ function MyBookings() {
           <div className="bookings-empty-state">
             <div className="empty-icon-wrap">🚤</div>
             <h3>
-              {activeTab === "upcoming"
+              {searchTerm
+                ? `No Bookings Found Matching "${searchTerm}"`
+                : activeTab === "upcoming"
                 ? "No Upcoming Safaris Scheduled"
                 : activeTab === "past"
                 ? "No Past Expeditions Found"
+                : activeTab === "cancelled"
+                ? "No Cancelled Safaris"
                 : "No Bookings Found"}
             </h3>
             <p>
-              {searchTerm
-                ? "No reservations match your current search criteria. Try a different keyword."
-                : activeTab === "upcoming"
-                ? "You don't have any upcoming boat safari trips planned right now. Discover our scenic Madu River tours and reserve your adventure!"
-                : "Explore our mangrove tours, sunset cruises, and luxury boat packages to begin your journey."}
+              {searchTerm ? (
+                totalSearchMatches > 0 && activeTab !== "all"
+                  ? `Found ${totalSearchMatches} reservation(s) matching "${searchTerm}" in other tabs.`
+                  : `No reservations match "${searchTerm}". Try searching by passenger name, boat name, date (YYYY-MM-DD), or booking #ID.`
+              ) : activeTab === "upcoming" ? (
+                "You don't have any upcoming boat safari trips planned right now. Discover our scenic Madu River tours and reserve your adventure!"
+              ) : activeTab === "cancelled" ? (
+                "You do not have any cancelled reservations."
+              ) : (
+                "Explore our mangrove tours, sunset cruises, and luxury boat packages to begin your journey."
+              )}
             </p>
-            <Link to="/booktrip" className="btn-book-safari-cta">
-              <span>Explore Trips & Book Safari</span>
-              <span className="btn-arrow">→</span>
-            </Link>
+
+            {searchTerm && totalSearchMatches > 0 && activeTab !== "all" ? (
+              <button
+                type="button"
+                className="btn-book-safari-cta"
+                onClick={() => setActiveTab("all")}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                <span>View Matching Bookings in All Bookings ({totalSearchMatches})</span>
+                <span className="btn-arrow">→</span>
+              </button>
+            ) : searchTerm ? (
+              <button
+                type="button"
+                className="btn-book-safari-cta"
+                onClick={() => setSearchTerm("")}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                <span>Clear Search Filter</span>
+              </button>
+            ) : (
+              <Link to="/booktrip" className="btn-book-safari-cta">
+                <span>Explore Trips & Book Safari</span>
+                <span className="btn-arrow">→</span>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="bookings-cards-list">
+            {searchTerm.trim() && (
+              <div className="search-active-pill-bar">
+                <span>
+                  🔍 Found <strong>{filteredBookings.length}</strong> matching safari reservation{filteredBookings.length === 1 ? "" : "s"} for "<strong>{searchTerm}</strong>"
+                </span>
+                <button
+                  type="button"
+                  className="btn-clear-active-search"
+                  onClick={() => setSearchTerm("")}
+                >
+                  Clear Search ✕
+                </button>
+              </div>
+            )}
             {filteredBookings.map((b) => {
               const timing = getBookingTiming(b.safariDate);
               const isCancelled = checkIsCancelled(b);
@@ -822,20 +994,28 @@ function MyBookings() {
                 </div>
 
                 <div className="edit-form-group">
-                  <label htmlFor="editBoat">🚤 Assigned Boat</label>
-                  <select
+                  <div className="label-with-badge">
+                    <label htmlFor="editBoat">🚤 Assigned Boat</label>
+                    <span className="badge-locked" title="Boat is allocated by operational schedule and cannot be changed by users">
+                      🔒 Fixed Assignment
+                    </span>
+                  </div>
+                  <input
+                    type="text"
                     id="editBoat"
-                    value={editFormData.boatId}
-                    onChange={(e) => setEditFormData({ ...editFormData, boatId: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Boat</option>
-                    {boats.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.boatType}) — Max {b.capacity} seats
-                      </option>
-                    ))}
-                  </select>
+                    value={
+                      editingBooking.boat
+                        ? `${editingBooking.boat.name} (${editingBooking.boat.boatType || "Vessel"}) — Max ${editingBooking.boat.capacity || 10} seats`
+                        : "Assigned Safari Vessel"
+                    }
+                    disabled
+                    readOnly
+                    className="input-locked"
+                    title="Assigned boat cannot be altered. Contact operations desk for vessel reallocations."
+                  />
+                  <small className="field-hint-locked">
+                    🔒 Boat is fixed to this scheduled trip and cannot be modified.
+                  </small>
                 </div>
 
                 <div className="edit-form-group">
@@ -870,11 +1050,11 @@ function MyBookings() {
                   <span className="p-label">Total Guests:</span>
                   <span className="p-val">{Number(editFormData.adults) + Number(editFormData.children)} Guests</span>
                 </div>
-                {boats.find((b) => b.id === Number(editFormData.boatId)) && (
+                {editingBooking.boat && (
                   <div className="preview-stat">
                     <span className="p-label">Boat Capacity:</span>
                     <span className="p-val">
-                      {boats.find((b) => b.id === Number(editFormData.boatId))?.capacity} Max
+                      {editingBooking.boat.capacity} Max
                     </span>
                   </div>
                 )}
@@ -884,7 +1064,7 @@ function MyBookings() {
                     LKR {(
                       Number(editFormData.adults) * (editingBooking.trip?.adultPrice || 0) +
                       Number(editFormData.children) * (editingBooking.trip?.childPrice || 0) +
-                      (boats.find((b) => b.id === Number(editFormData.boatId))?.price || 0)
+                      (editingBooking.boat?.price || 0)
                     ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>

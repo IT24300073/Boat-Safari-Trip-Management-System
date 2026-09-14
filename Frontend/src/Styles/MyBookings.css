@@ -283,21 +283,44 @@
   justify-content: flex-end;
 }
 
+.search-form-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
+  max-width: 440px;
+}
+
 .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 240px;
-  max-width: 320px;
+  min-width: 220px;
+  flex-grow: 1;
   width: 100%;
 }
 
-.search-icon {
+.search-icon-btn {
   position: absolute;
-  left: 12px;
-  font-size: 0.85rem;
-  pointer-events: none;
-  opacity: 0.6;
+  left: 6px;
+  background: transparent;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: var(--radius-xs);
+  transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
+  z-index: 2;
+}
+
+.search-icon-btn:hover {
+  transform: scale(1.15);
+  color: var(--amber-primary);
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .bookings-search-input {
@@ -306,15 +329,17 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  padding: 8px 32px 8px 34px;
+  padding: 8px 32px 8px 36px;
   font-size: 0.85rem;
-  transition: border-color 0.15s ease;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
 }
 
 .bookings-search-input:focus {
   outline: none;
   border-color: var(--amber-primary);
   box-shadow: 0 0 0 2px var(--amber-glow);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .clear-search-btn {
@@ -326,10 +351,74 @@
   cursor: pointer;
   font-size: 0.8rem;
   padding: 2px;
+  z-index: 2;
 }
 
 .clear-search-btn:hover {
   color: var(--text-primary);
+}
+
+.btn-search-action {
+  background: linear-gradient(135deg, var(--amber-primary), var(--amber-hover));
+  color: var(--text-dark);
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-search-action:hover {
+  background: linear-gradient(135deg, #fbbf24, var(--amber-primary));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
+.btn-search-action:active {
+  transform: translateY(0);
+}
+
+.search-active-pill-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  margin-bottom: 20px;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.search-active-pill-bar strong {
+  color: var(--amber-primary);
+}
+
+.btn-clear-active-search {
+  background: transparent;
+  border: none;
+  color: var(--amber-light);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  transition: all 0.15s ease;
+}
+
+.btn-clear-active-search:hover {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fff;
 }
 
 .bookings-sort-select {
@@ -1226,6 +1315,52 @@
 .edit-form-group select:focus {
   border-color: var(--amber-primary);
   box-shadow: 0 0 0 2px var(--amber-glow);
+}
+
+.label-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badge-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber-light);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+.edit-form-group input.input-locked,
+.edit-form-group input:disabled {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px dashed rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-secondary) !important;
+  cursor: not-allowed;
+  opacity: 0.85;
+  font-weight: 500;
+  user-select: none;
+}
+
+.edit-form-group input.input-locked:focus {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  box-shadow: none !important;
+}
+
+.field-hint-locked {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
 }
 
 .edit-preview-box {
