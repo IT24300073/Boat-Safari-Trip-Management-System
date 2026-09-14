@@ -25,6 +25,7 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
   const [boats, setBoats] = useState([]);
   const [trips, setTrips] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [cardError, setCardError] = useState("");
 
   // Auto-fill logged in user details
   useEffect(() => {
@@ -73,6 +74,72 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Auto-adjust Credit Card Number 4 by 4 (e.g. 1234 5678 9012 3456)
+    if (name === "cardNumber") {
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 16);
+      const formattedCard = digitsOnly.match(/.{1,4}/g)?.join(" ") || "";
+      setFormData((prev) => ({ ...prev, cardNumber: formattedCard }));
+      return;
+    }
+
+    // Auto-adjust Expiry Date with slash after month and validate against past dates
+    if (name === "expiry") {
+      // Handle backspacing cleanly
+      if (e.nativeEvent && e.nativeEvent.inputType === "deleteContentBackward") {
+        let val = value;
+        if (val.length === 2 && formData.expiry.endsWith("/")) {
+          val = val.slice(0, 1);
+        }
+        setFormData((prev) => ({ ...prev, expiry: val }));
+        setCardError("");
+        return;
+      }
+
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+      let formattedExpiry = digitsOnly;
+      if (digitsOnly.length === 1 && Number(digitsOnly) > 1) {
+        // Single digit month > 1 (e.g. 2-9) auto pads with 0 and appends slash
+        formattedExpiry = `0${digitsOnly}/`;
+      } else if (digitsOnly.length >= 2) {
+        formattedExpiry = `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
+      }
+
+      setFormData((prev) => ({ ...prev, expiry: formattedExpiry }));
+
+      // Real-time Expiry Validation when MM/YY is fully typed
+      if (formattedExpiry.length === 5) {
+        const match = formattedExpiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+        if (!match) {
+          setCardError("Invalid month. Month must be between 01 and 12.");
+        } else {
+          const expM = parseInt(match[1], 10);
+          const expY = 2000 + parseInt(match[2], 10);
+          const now = new Date();
+          const curY = now.getFullYear();
+          const curM = now.getMonth() + 1;
+
+          if (expY < curY || (expY === curY && expM < curM)) {
+            setCardError("Card has expired. Expiry date cannot be in the past.");
+          } else if (expY > curY + 25) {
+            setCardError("Expiry year cannot be more than 25 years in the future.");
+          } else {
+            setCardError("");
+          }
+        }
+      } else {
+        setCardError("");
+      }
+      return;
+    }
+
+    // CVV security code (digits only, max 4)
+    if (name === "cvv") {
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+      setFormData((prev) => ({ ...prev, cvv: digitsOnly }));
+      return;
+    }
+
     const newValue =
       name === "adults" || name === "children" ? Number(value) : value;
 
@@ -130,12 +197,28 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
     }
 
     if (formData.paymentMethod === "card") {
-      if (!/^\d{16}$/.test(formData.cardNumber)) {
+      const rawCard = (formData.cardNumber || "").replace(/\s+/g, "");
+      if (!/^\d{16}$/.test(rawCard)) {
         return "Card number must be exactly 16 digits.";
       }
 
-      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(formData.expiry)) {
-        return "Expiry must be in MM/YY format.";
+      const match = (formData.expiry || "").match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+      if (!match) {
+        return "Expiry must be in MM/YY format with a valid month (01-12).";
+      }
+
+      const expMonth = parseInt(match[1], 10);
+      const expYear = 2000 + parseInt(match[2], 10);
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-indexed
+
+      if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+        return "Credit card has expired. Expiry date cannot be in the past.";
+      }
+
+      if (expYear > currentYear + 25) {
+        return "Expiry year cannot be more than 25 years in the future.";
       }
 
       if (!/^\d{3,4}$/.test(formData.cvv)) {
@@ -381,10 +464,12 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
                   <input
                     type="text"
                     name="cardNumber"
-                    maxLength="16"
+                    maxLength="19"
                     placeholder="1234 5678 9101 1121"
                     value={formData.cardNumber}
                     onChange={handleChange}
+                    autoComplete="cc-number"
+                    inputMode="numeric"
                     required
                   />
                 </div>
@@ -395,9 +480,13 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
                     <input
                       type="text"
                       name="expiry"
+                      maxLength="5"
                       placeholder="MM/YY"
                       value={formData.expiry}
                       onChange={handleChange}
+                      autoComplete="cc-exp"
+                      inputMode="numeric"
+                      className={cardError ? "input-invalid" : ""}
                       required
                     />
                   </div>
@@ -411,10 +500,18 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
                       placeholder="123"
                       value={formData.cvv}
                       onChange={handleChange}
+                      autoComplete="cc-csc"
+                      inputMode="numeric"
                       required
                     />
                   </div>
                 </div>
+
+                {cardError && (
+                  <div className="card-error-hint">
+                    ⚠️ {cardError}
+                  </div>
+                )}
               </div>
             )}
 
@@ -434,7 +531,7 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId }) {
           <button
             type="submit"
             className="btn-confirm-booking"
-            disabled={loading || !!errorMessage}
+            disabled={loading || !!errorMessage || (formData.paymentMethod === "card" && !!cardError)}
           >
             {loading ? "Processing Reservation..." : `Confirm & Pay LKR ${totalPrice.toLocaleString()}`}
           </button>
