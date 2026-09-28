@@ -29,6 +29,18 @@ function MyBookings() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
 
+  // Card Payment Modal state for increased passenger count on card bookings
+  const [showCardPaymentModal, setShowCardPaymentModal] = useState(false);
+  const [pendingUpdatePayload, setPendingUpdatePayload] = useState(null);
+  const [extraPaymentAmount, setExtraPaymentAmount] = useState(0);
+  const [cardFormData, setCardFormData] = useState({
+    cardNumber: "",
+    expiry: "",
+    cvv: "",
+  });
+  const [cardError, setCardError] = useState("");
+  const [processingCardPayment, setProcessingCardPayment] = useState(false);
+
   // Fetch boats & trips for edit modal dropdowns and price calculation
   useEffect(() => {
     axios
@@ -91,17 +103,32 @@ function MyBookings() {
     return `${year}-${month}-${day}`;
   }, []);
 
-  // --- Delete Booking Handler ---
-  const handleDeleteBooking = async (id, tripName, safariDate) => {
+  // --- Delete / Cancel Booking Handler ---
+  const handleDeleteBooking = async (b) => {
+    const isCash = (b.paymentMethod || "").toLowerCase().includes("cash");
+    const amountStr = Number(b.totalPrice) > 0
+      ? `LKR ${Number(b.totalPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      : "The amount";
+
+    const refundPromptNotice = !isCash
+      ? `\n\n💳 Refund Notice: ${amountStr} will be refunded to your card within 5 working days.`
+      : "";
+
     const confirmDelete = window.confirm(
-      `⚠️ Are you sure you want to cancel your reservation for "${tripName || "Safari"}" on ${safariDate}? This action cannot be undone.`
+      `⚠️ Are you sure you want to cancel your reservation #${b.id} for "${b.trip?.name || "Safari"}" on ${b.safariDate}?${refundPromptNotice}\n\nThis action cannot be undone.`
     );
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`http://localhost:8080/api/bookings/${id}`);
-      setActionSuccessMsg(`✅ Booking #${id} was successfully canceled.`);
-      setTimeout(() => setActionSuccessMsg(""), 5000);
+      await axios.delete(`http://localhost:8080/api/bookings/${b.id}`);
+      if (!isCash) {
+        setActionSuccessMsg(
+          `✅ Reservation #${b.id} was successfully canceled. ${amountStr} will be refunded to your card within 5 working days.`
+        );
+      } else {
+        setActionSuccessMsg(`✅ Reservation #${b.id} was successfully canceled.`);
+      }
+      setTimeout(() => setActionSuccessMsg(""), 8000);
       fetchUserBookings();
     } catch (err) {
       console.error("Failed to delete booking:", err);
@@ -119,11 +146,108 @@ function MyBookings() {
       boatId: b.boat?.id ? String(b.boat.id) : "",
     });
     setEditError("");
+    setShowCardPaymentModal(false);
+    setPendingUpdatePayload(null);
+    setExtraPaymentAmount(0);
+    setCardFormData({ cardNumber: "", expiry: "", cvv: "" });
+    setCardError("");
   };
 
   const handleCloseEdit = () => {
     setEditingBooking(null);
     setEditError("");
+    setShowCardPaymentModal(false);
+    setPendingUpdatePayload(null);
+    setExtraPaymentAmount(0);
+    setCardFormData({ cardNumber: "", expiry: "", cvv: "" });
+    setCardError("");
+  };
+
+  // Card input change formatting (16 digits spaced 4x4, MM/YY expiry, CVV)
+  const handleCardInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "cardNumber") {
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 16);
+      const formattedCard = digitsOnly.match(/.{1,4}/g)?.join(" ") || "";
+      setCardFormData((prev) => ({ ...prev, cardNumber: formattedCard }));
+      if (digitsOnly.length === 16) setCardError("");
+      return;
+    }
+
+    if (name === "expiry") {
+      if (e.nativeEvent && e.nativeEvent.inputType === "deleteContentBackward") {
+        let val = value;
+        if (val.length === 2 && cardFormData.expiry.endsWith("/")) {
+          val = val.slice(0, 1);
+        }
+        setCardFormData((prev) => ({ ...prev, expiry: val }));
+        return;
+      }
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+      let formattedExpiry = digitsOnly;
+      if (digitsOnly.length === 1 && Number(digitsOnly) > 1) {
+        formattedExpiry = `0${digitsOnly}/`;
+      } else if (digitsOnly.length >= 2) {
+        formattedExpiry = `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
+      }
+      setCardFormData((prev) => ({ ...prev, expiry: formattedExpiry }));
+
+      if (formattedExpiry.length === 5) {
+        const match = formattedExpiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+        if (!match) {
+          setCardError("Invalid month. Month must be between 01 and 12.");
+        } else {
+          const expM = parseInt(match[1], 10);
+          const expY = 2000 + parseInt(match[2], 10);
+          const now = new Date();
+          const curY = now.getFullYear();
+          const curM = now.getMonth() + 1;
+          if (expY < curY || (expY === curY && expM < curM)) {
+            setCardError("Card has expired. Expiry date cannot be in the past.");
+          } else if (expY > curY + 25) {
+            setCardError("Expiry year cannot be more than 25 years in the future.");
+          } else {
+            setCardError("");
+          }
+        }
+      } else {
+        setCardError("");
+      }
+      return;
+    }
+
+    if (name === "cvv") {
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 4);
+      setCardFormData((prev) => ({ ...prev, cvv: digitsOnly }));
+      if (digitsOnly.length >= 3) setCardError("");
+      return;
+    }
+  };
+
+  const validateCardForm = () => {
+    const rawCard = (cardFormData.cardNumber || "").replace(/\s+/g, "");
+    if (!/^\d{16}$/.test(rawCard)) {
+      return "Card number must be exactly 16 digits.";
+    }
+    const match = (cardFormData.expiry || "").match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+    if (!match) {
+      return "Expiry must be in MM/YY format with a valid month (01-12).";
+    }
+    const expMonth = parseInt(match[1], 10);
+    const expYear = 2000 + parseInt(match[2], 10);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+      return "Credit card has expired. Expiry date cannot be in the past.";
+    }
+    if (expYear > currentYear + 25) {
+      return "Expiry year cannot be more than 25 years in the future.";
+    }
+    if (!/^\d{3,4}$/.test(cardFormData.cvv)) {
+      return "CVV must be 3 or 4 digits.";
+    }
+    return null;
   };
 
   const handleSaveEdit = async () => {
@@ -147,34 +271,73 @@ function MyBookings() {
       return;
     }
 
-    setSavingEdit(true);
-    setEditError("");
+    const origAdults = editingBooking.adults || 0;
+    const origChildren = editingBooking.children || 0;
+    const origPax = origAdults + origChildren;
 
-    // Calculate updated price keeping the assigned boat price
+    const newAdults = Number(editFormData.adults);
+    const newChildren = Number(editFormData.children);
+    const newPax = newAdults + newChildren;
+
     const matchedTrip = editingBooking.trip;
     const adultRate = matchedTrip?.adultPrice || 0;
     const childRate = matchedTrip?.childPrice || 0;
     const boatRate = assignedBoat?.price || 0;
     const recalculatedTotal =
-      Number(editFormData.adults) * adultRate +
-      Number(editFormData.children) * childRate +
+      newAdults * adultRate +
+      newChildren * childRate +
       boatRate;
+
+    const priceDiff = recalculatedTotal - (editingBooking.totalPrice || 0);
+    const isCash = (editingBooking.paymentMethod || "").toLowerCase().includes("cash");
+    const isPaxIncreased = newPax > origPax || newAdults > origAdults || newChildren > origChildren;
+    const isPaxDecreased = newPax < origPax;
 
     const payload = {
       ...editingBooking,
       safariDate: editFormData.safariDate,
-      adults: Number(editFormData.adults),
-      children: Number(editFormData.children),
+      adults: newAdults,
+      children: newChildren,
       passengers: totalPassengers,
       totalPrice: recalculatedTotal > 0 ? recalculatedTotal : editingBooking.totalPrice,
       boat: assignedBoat ? { id: assignedBoat.id } : null,
       trip: matchedTrip ? { id: matchedTrip.id } : null,
     };
 
+    // If passenger count increased and originally paid by card, prompt card details modal
+    if (isPaxIncreased && !isCash && priceDiff > 0) {
+      setPendingUpdatePayload(payload);
+      setExtraPaymentAmount(priceDiff);
+      setCardFormData({ cardNumber: "", expiry: "", cvv: "" });
+      setCardError("");
+      setShowCardPaymentModal(true);
+      return;
+    }
+
+    // Direct save for Cash or Pax Decreased or No Pax Change
+    setSavingEdit(true);
+    setEditError("");
+
     try {
       await axios.put(`http://localhost:8080/api/bookings/${editingBooking.id}`, payload);
-      setActionSuccessMsg(`✅ Reservation #${editingBooking.id} has been updated successfully!`);
-      setTimeout(() => setActionSuccessMsg(""), 5000);
+
+      if (isPaxIncreased && isCash) {
+        setActionSuccessMsg(
+          `✅ Reservation #${editingBooking.id} updated! Pax increased. Please pay the extra cash of LKR ${Math.max(0, priceDiff).toLocaleString(undefined, { minimumFractionDigits: 2 })} when meeting at the safari boarding deck.`
+        );
+      } else if (isPaxDecreased && !isCash) {
+        setActionSuccessMsg(
+          `✅ Reservation #${editingBooking.id} updated! Pax decreased. An amount of LKR ${Math.abs(priceDiff).toLocaleString(undefined, { minimumFractionDigits: 2 })} will be refunded to your card within 5 working days.`
+        );
+      } else if (isPaxDecreased && isCash) {
+        setActionSuccessMsg(
+          `✅ Reservation #${editingBooking.id} updated! Pax decreased. Please pay the updated amount of LKR ${recalculatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} when meeting at the safari boarding deck.`
+        );
+      } else {
+        setActionSuccessMsg(`✅ Reservation #${editingBooking.id} has been updated successfully!`);
+      }
+
+      setTimeout(() => setActionSuccessMsg(""), 8000);
       handleCloseEdit();
       fetchUserBookings();
     } catch (err) {
@@ -183,6 +346,39 @@ function MyBookings() {
       setEditError("⚠️ Update Conflict: " + msg);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // Confirm card payment for additional passengers on card booking
+  const handleConfirmCardPayment = async (e) => {
+    if (e) e.preventDefault();
+    if (!pendingUpdatePayload || !editingBooking) return;
+
+    const validationErr = validateCardForm();
+    if (validationErr) {
+      setCardError(validationErr);
+      return;
+    }
+
+    setProcessingCardPayment(true);
+    setCardError("");
+
+    try {
+      await axios.put(`http://localhost:8080/api/bookings/${editingBooking.id}`, pendingUpdatePayload);
+      setActionSuccessMsg(
+        `✅ Reservation #${editingBooking.id} updated! Additional payment of LKR ${extraPaymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} was successfully charged to your card.`
+      );
+      setTimeout(() => setActionSuccessMsg(""), 8000);
+      setShowCardPaymentModal(false);
+      setPendingUpdatePayload(null);
+      handleCloseEdit();
+      fetchUserBookings();
+    } catch (err) {
+      console.error("Failed to process payment and update booking:", err);
+      const msg = err.response?.data?.message || "Payment authorization or update conflict.";
+      setCardError("⚠️ " + msg);
+    } finally {
+      setProcessingCardPayment(false);
     }
   };
 
@@ -763,7 +959,9 @@ function MyBookings() {
                             "{b.cancelReason || "Adverse weather or river navigation restrictions"}"
                           </div>
                           <div className="cancellation-subtext">
-                            ℹ️ Your reservation is cancelled. Any collected payments are marked for refund, or you can contact Jetty Desk Operations to reschedule for an alternative date.
+                            {!((b.paymentMethod || "").toLowerCase().includes("cash"))
+                              ? `ℹ️ Reservation cancelled. The amount of LKR ${Number(b.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} will be refunded to your card within 5 working days.`
+                              : "ℹ️ Your reservation is cancelled. Any collected payments are marked for refund, or you can contact Jetty Desk Operations to reschedule for an alternative date."}
                           </div>
                         </div>
                       </div>
@@ -928,7 +1126,7 @@ function MyBookings() {
 
                           <button
                             className="btn-card-delete"
-                            onClick={() => handleDeleteBooking(b.id, b.trip?.name, b.safariDate)}
+                            onClick={() => handleDeleteBooking(b)}
                             title="Cancel this reservation"
                           >
                             🗑️ Cancel
@@ -1069,6 +1267,86 @@ function MyBookings() {
                   </span>
                 </div>
               </div>
+
+              {/* Dynamic Payment & Refund Notices based on pax adjustment and original payment method */}
+              {(() => {
+                const origAdults = editingBooking.adults || 0;
+                const origChildren = editingBooking.children || 0;
+                const origPax = origAdults + origChildren;
+
+                const currAdults = Number(editFormData.adults) || 0;
+                const currChildren = Number(editFormData.children) || 0;
+                const currPax = currAdults + currChildren;
+
+                const matchedTrip = editingBooking.trip;
+                const adultRate = matchedTrip?.adultPrice || 0;
+                const childRate = matchedTrip?.childPrice || 0;
+                const boatRate = editingBooking.boat?.price || 0;
+                const currTotal = currAdults * adultRate + currChildren * childRate + boatRate;
+                const priceDiff = currTotal - (editingBooking.totalPrice || 0);
+
+                const isCash = (editingBooking.paymentMethod || "").toLowerCase().includes("cash");
+                const paxIncreased = currPax > origPax || currAdults > origAdults || currChildren > origChildren;
+                const paxDecreased = currPax < origPax;
+
+                if (paxIncreased && !isCash && priceDiff > 0) {
+                  return (
+                    <div className="modify-payment-notice notice-card-extra">
+                      <span className="notice-icon">💳</span>
+                      <div className="notice-body">
+                        <strong>Credit / Debit Card Payment Required:</strong>
+                        <p>
+                          You have increased passengers (+{currPax - origPax} guest{currPax - origPax > 1 ? "s" : ""}). An additional charge of <strong>LKR {Math.max(0, priceDiff).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> is required. Clicking the button below will open a secure window to enter your card details.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (paxIncreased && isCash) {
+                  return (
+                    <div className="modify-payment-notice notice-cash-extra">
+                      <span className="notice-icon">💵</span>
+                      <div className="notice-body">
+                        <strong>Pay Cash On Arrival:</strong>
+                        <p>
+                          You have increased passengers (+{currPax - origPax} guest{currPax - origPax > 1 ? "s" : ""}). Please pay the extra cash of <strong>LKR {Math.max(0, priceDiff).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> when meeting at the safari boarding deck.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (paxDecreased && !isCash) {
+                  return (
+                    <div className="modify-payment-notice notice-card-refund">
+                      <span className="notice-icon">💳</span>
+                      <div className="notice-body">
+                        <strong>Card Refund Notice:</strong>
+                        <p>
+                          Passenger count decreased (-{origPax - currPax} guest{origPax - currPax > 1 ? "s" : ""}). An amount of <strong>LKR {Math.abs(priceDiff).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> will be refunded to your card within 5 working days.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (paxDecreased && isCash) {
+                  return (
+                    <div className="modify-payment-notice notice-cash-reduced">
+                      <span className="notice-icon">💵</span>
+                      <div className="notice-body">
+                        <strong>Updated Cash Payment:</strong>
+                        <p>
+                          Passenger count decreased (-{origPax - currPax} guest{origPax - currPax > 1 ? "s" : ""}). Please pay the updated amount of <strong>LKR {currTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> when meeting at the safari boarding deck.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
 
             <div className="edit-modal-footer">
@@ -1076,9 +1354,163 @@ function MyBookings() {
                 Cancel
               </button>
               <button className="btn-save-edit" onClick={handleSaveEdit} disabled={savingEdit}>
-                {savingEdit ? "Saving..." : "💾 Save Changes"}
+                {savingEdit ? (
+                  "Saving..."
+                ) : (() => {
+                  const origPax = (editingBooking.adults || 0) + (editingBooking.children || 0);
+                  const currPax = Number(editFormData.adults) + Number(editFormData.children);
+                  const currTotal =
+                    Number(editFormData.adults) * (editingBooking.trip?.adultPrice || 0) +
+                    Number(editFormData.children) * (editingBooking.trip?.childPrice || 0) +
+                    (editingBooking.boat?.price || 0);
+                  const priceDiff = currTotal - (editingBooking.totalPrice || 0);
+                  const isCash = (editingBooking.paymentMethod || "").toLowerCase().includes("cash");
+                  const paxIncreased = currPax > origPax || Number(editFormData.adults) > (editingBooking.adults || 0) || Number(editFormData.children) > (editingBooking.children || 0);
+
+                  if (paxIncreased && !isCash && priceDiff > 0) {
+                    return `💳 Enter Card Details (+LKR ${priceDiff.toLocaleString()})`;
+                  }
+                  return "💾 Save Changes";
+                })()}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Card Details Modal for Additional Pax Payment */}
+      {showCardPaymentModal && pendingUpdatePayload && (
+        <div className="edit-modal-backdrop" onClick={() => setShowCardPaymentModal(false)}>
+          <div className="card-payment-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header">
+              <div className="edit-modal-title-wrap">
+                <span className="edit-modal-icon">💳</span>
+                <h3>Payment for Additional Passengers</h3>
+              </div>
+              <button
+                className="btn-modal-close"
+                onClick={() => setShowCardPaymentModal(false)}
+                title="Cancel & Back to Edit"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmCardPayment} className="edit-modal-body">
+              {/* Financial summary breakdown */}
+              <div className="card-payment-breakdown">
+                <div className="breakdown-row">
+                  <span>Reservation Ref:</span>
+                  <strong>#{editingBooking.id} ({editingBooking.trip?.name || "Safari"})</strong>
+                </div>
+                <div className="breakdown-row">
+                  <span>Passenger Update:</span>
+                  <span>
+                    {(editingBooking.adults || 0) + (editingBooking.children || 0)} Guests →{" "}
+                    <strong style={{ color: "#38bdf8" }}>
+                      {pendingUpdatePayload.passengers} Guests (+{pendingUpdatePayload.passengers - ((editingBooking.adults || 0) + (editingBooking.children || 0))})
+                    </strong>
+                  </span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Original Total:</span>
+                  <span>LKR {Number(editingBooking.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>New Total:</span>
+                  <span>LKR {Number(pendingUpdatePayload.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="breakdown-row extra-highlight">
+                  <span>Amount to Pay Now:</span>
+                  <span className="extra-price-val">
+                    LKR {Number(extraPaymentAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="card-security-banner">
+                <span>🛡️</span>
+                <span>256-bit SSL Encrypted & PCI-DSS Compliant Payment Verification</span>
+              </div>
+
+              {cardError && <div className="card-error-banner">⚠️ {cardError}</div>}
+
+              {/* Card Inputs */}
+              <div className="card-fields-group">
+                <div className="card-field">
+                  <label htmlFor="modalCardNumInput">
+                    <span>16-Digit Card Number</span>
+                    <span>💳 Visa / Mastercard</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="modalCardNumInput"
+                    name="cardNumber"
+                    maxLength="19"
+                    placeholder="1234 5678 9101 1121"
+                    value={cardFormData.cardNumber}
+                    onChange={handleCardInputChange}
+                    autoComplete="cc-number"
+                    inputMode="numeric"
+                    required
+                  />
+                </div>
+
+                <div className="card-row-dual">
+                  <div className="card-field">
+                    <label htmlFor="modalCardExpInput">Expiry (MM/YY)</label>
+                    <input
+                      type="text"
+                      id="modalCardExpInput"
+                      name="expiry"
+                      maxLength="5"
+                      placeholder="MM/YY"
+                      value={cardFormData.expiry}
+                      onChange={handleCardInputChange}
+                      autoComplete="cc-exp"
+                      inputMode="numeric"
+                      required
+                    />
+                  </div>
+
+                  <div className="card-field">
+                    <label htmlFor="modalCardCvvInput">CVV Security Code</label>
+                    <input
+                      type="password"
+                      id="modalCardCvvInput"
+                      name="cvv"
+                      maxLength="4"
+                      placeholder="•••"
+                      value={cardFormData.cvv}
+                      onChange={handleCardInputChange}
+                      autoComplete="cc-csc"
+                      inputMode="numeric"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="edit-modal-footer" style={{ padding: "16px 0 0 0", background: "transparent", borderTop: "1px solid var(--border-subtle)" }}>
+                <button
+                  type="button"
+                  className="btn-cancel-edit"
+                  onClick={() => setShowCardPaymentModal(false)}
+                  disabled={processingCardPayment}
+                >
+                  ← Back to Edit
+                </button>
+                <button
+                  type="submit"
+                  className="btn-pay-extra"
+                  disabled={processingCardPayment}
+                >
+                  {processingCardPayment
+                    ? "Processing Payment..."
+                    : `🔒 Pay LKR ${Number(extraPaymentAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })} & Confirm`}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

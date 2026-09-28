@@ -657,17 +657,6 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
                 />
                 <span>💵 Pay Cash On Arrival</span>
               </label>
-
-              <label className={`payment-tab ${formData.paymentMethod === "paypal" ? "active" : ""}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="paypal"
-                  checked={formData.paymentMethod === "paypal"}
-                  onChange={handleChange}
-                />
-                <span>🅿️ PayPal</span>
-              </label>
             </div>
 
             {formData.paymentMethod === "card" && (

@@ -1450,3 +1450,216 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Modify Reservation - Payment Notices & Card Modal Styling
+   ========================================================================== */
+
+.modify-payment-notice {
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  animation: fadeIn 0.25s ease-out;
+  margin-top: 10px;
+}
+
+.modify-payment-notice .notice-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.modify-payment-notice .notice-body strong {
+  display: block;
+  font-size: 0.88rem;
+  margin-bottom: 3px;
+}
+
+.modify-payment-notice .notice-body p {
+  margin: 0;
+  color: inherit;
+  opacity: 0.95;
+}
+
+/* Notice variations */
+.notice-card-extra {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+}
+
+.notice-card-extra .notice-body strong {
+  color: #7dd3fc;
+}
+
+.notice-cash-extra {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.notice-cash-extra .notice-body strong {
+  color: #6ee7b7;
+}
+
+.notice-card-refund {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.notice-card-refund .notice-body strong {
+  color: #fde68a;
+}
+
+.notice-cash-reduced {
+  background: rgba(20, 184, 166, 0.12);
+  border: 1px solid rgba(20, 184, 166, 0.35);
+  color: #2dd4bf;
+}
+
+.notice-cash-reduced .notice-body strong {
+  color: #5eead4;
+}
+
+/* --- Card Details Payment Modal --- */
+.card-payment-modal-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.12);
+  overflow: hidden;
+  animation: scaleIn 0.22s ease-out;
+}
+
+.card-payment-breakdown {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.breakdown-row.extra-highlight {
+  border-top: 1px dashed rgba(245, 158, 11, 0.3);
+  padding-top: 10px;
+  margin-top: 2px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--amber-light);
+}
+
+.extra-price-val {
+  font-size: 1.25rem;
+  font-family: var(--font-display);
+  color: var(--amber-primary);
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.card-security-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #6ee7b7;
+}
+
+.card-fields-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.card-field input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 11px 14px;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.card-field input:focus {
+  border-color: var(--amber-primary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.card-row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card-error-banner {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: var(--rose);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.btn-pay-extra {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 10px 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-pay-extra:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.btn-pay-extra:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

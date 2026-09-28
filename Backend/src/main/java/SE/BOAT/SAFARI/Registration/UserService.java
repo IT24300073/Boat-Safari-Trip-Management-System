@@ -1,6 +1,7 @@
 package SE.BOAT.SAFARI.Registration;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,6 +12,17 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    // Check if a password string is already a BCrypt hash
+    public boolean isBCryptHash(String password) {
+        if (password == null) {
+            return false;
+        }
+        return password.matches("^\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}$");
+    }
 
     // Register a new user
     public User registerUser(User user) {
@@ -42,7 +54,12 @@ public class UserService {
 
         user.setEmail(email);
         user.setPhone(phone);
-        user.setPassword(password);
+        // Hash password with BCrypt
+        if (!password.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+        } else {
+            user.setPassword("");
+        }
         if (user.getRole() == null || user.getRole().isEmpty()) {
             user.setRole("USER");
         }
@@ -110,7 +127,26 @@ public class UserService {
             return new LoginResult(LoginStatus.ACCOUNT_LOCKED, user, "Account is locked due to 5 consecutive failed login attempts. Please contact admin to unlock.", 0);
         }
 
-        if (user.getPassword().trim().equals(password)) {
+        String storedPassword = user.getPassword() != null ? user.getPassword().trim() : "";
+        boolean isMatch = false;
+
+        if (isBCryptHash(storedPassword)) {
+            try {
+                isMatch = passwordEncoder.matches(password, storedPassword);
+            } catch (Exception e) {
+                isMatch = false;
+            }
+        } else {
+            // Support legacy plain text passwords and upgrade them seamlessly
+            if (storedPassword.equals(password)) {
+                isMatch = true;
+                // Auto-upgrade plain text to BCrypt hash
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
+            }
+        }
+
+        if (isMatch) {
             user.setFailedLoginAttempts(0);
             userRepository.save(user);
             return new LoginResult(LoginStatus.SUCCESS, user, "Login successful.", 5);
@@ -164,7 +200,14 @@ public class UserService {
                 String p = updatedUser.getPhone().trim();
                 existingUser.setPhone(p.isEmpty() ? null : p);
             }
-            if (updatedUser.getPassword() != null) existingUser.setPassword(updatedUser.getPassword().trim());
+            if (updatedUser.getPassword() != null && !updatedUser.getPassword().trim().isEmpty()) {
+                String raw = updatedUser.getPassword().trim();
+                if (isBCryptHash(raw)) {
+                    existingUser.setPassword(raw);
+                } else {
+                    existingUser.setPassword(passwordEncoder.encode(raw));
+                }
+            }
             if (updatedUser.getRole() != null) existingUser.setRole(updatedUser.getRole());
 
             return userRepository.save(existingUser);
@@ -176,7 +219,8 @@ public class UserService {
         Optional<User> existingUserOptional = userRepository.findById(id);
         if (existingUserOptional.isPresent()) {
             User existingUser = existingUserOptional.get();
-            existingUser.setPassword(newPassword.trim());
+            String pwd = newPassword != null ? newPassword.trim() : "";
+            existingUser.setPassword(passwordEncoder.encode(pwd));
             userRepository.save(existingUser);
             return true;
         }
@@ -188,11 +232,33 @@ public class UserService {
         Optional<User> existingUserOptional = userRepository.findByEmail(email.trim());
         if (existingUserOptional.isPresent()) {
             User existingUser = existingUserOptional.get();
-            existingUser.setPassword(newPassword.trim());
+            String pwd = newPassword != null ? newPassword.trim() : "";
+            existingUser.setPassword(passwordEncoder.encode(pwd));
             userRepository.save(existingUser);
             return true;
         }
         return false;
+    }
+
+    // Automatically migrate any legacy plain text passwords in the database to BCrypt hashes
+    public void migrateLegacyPasswords() {
+        try {
+            List<User> users = userRepository.findAll();
+            int count = 0;
+            for (User u : users) {
+                String pwd = u.getPassword();
+                if (pwd != null && !pwd.trim().isEmpty() && !pwd.trim().equalsIgnoreCase("EMPTY") && !isBCryptHash(pwd.trim())) {
+                    u.setPassword(passwordEncoder.encode(pwd.trim()));
+                    userRepository.save(u);
+                    count++;
+                }
+            }
+            if (count > 0) {
+                System.out.println(">>> [MIGRATION] Successfully hashed " + count + " legacy plain text user password(s) with BCrypt.");
+            }
+        } catch (Exception e) {
+            System.err.println(">>> [MIGRATION ERROR] Could not migrate legacy passwords: " + e.getMessage());
+        }
     }
 
 

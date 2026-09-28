@@ -1,5 +1,6 @@
 package SE.BOAT.SAFARI.Registration;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -21,7 +22,8 @@ public class User {
     @Column(unique = true)
     private String phone;
 
-    @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(nullable = false, length = 255)
     private String password;
 
     @Column(nullable = false)
