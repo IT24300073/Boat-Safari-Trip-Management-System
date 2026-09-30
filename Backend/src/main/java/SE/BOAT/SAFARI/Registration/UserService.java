@@ -270,4 +270,44 @@ public class UserService {
         }
         return false;
     }
+
+    // Role Elevation
+    public boolean requestRoleElevation(Integer id, String requestedRole) {
+        Optional<User> existingUserOptional = userRepository.findById(id);
+        if (existingUserOptional.isPresent()) {
+            User existingUser = existingUserOptional.get();
+            existingUser.setRequestedRole(requestedRole);
+            existingUser.setRoleRequestStatus("PENDING");
+            userRepository.save(existingUser);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean approveRoleElevation(Integer id) {
+        Optional<User> existingUserOptional = userRepository.findById(id);
+        if (existingUserOptional.isPresent()) {
+            User existingUser = existingUserOptional.get();
+            if (existingUser.getRequestedRole() != null && existingUser.getRoleRequestStatus() != null && existingUser.getRoleRequestStatus().equals("PENDING")) {
+                existingUser.setRole(existingUser.getRequestedRole());
+                existingUser.setRoleRequestStatus("APPROVED");
+                userRepository.save(existingUser);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean rejectRoleElevation(Integer id) {
+        Optional<User> existingUserOptional = userRepository.findById(id);
+        if (existingUserOptional.isPresent()) {
+            User existingUser = existingUserOptional.get();
+            if (existingUser.getRoleRequestStatus() != null && existingUser.getRoleRequestStatus().equals("PENDING")) {
+                existingUser.setRoleRequestStatus("REJECTED");
+                userRepository.save(existingUser);
+                return true;
+            }
+        }
+        return false;
+    }
 }

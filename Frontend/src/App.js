@@ -8,6 +8,7 @@ import AdminPanel from "./Pages/AdminPanel";
 import Booking from "./Pages/Booking";
 import Login from "./Pages/Login";
 import Registration from "./Pages/Registration";
+import ResetPassword from "./Pages/ResetPassword";
 import Feedback from "./Pages/Feedback";
 import Booktrip from "./Pages/Booktrip";
 import Report from "./Pages/Report";
@@ -28,6 +29,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Registration />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* 🔒 Private (Protected) Routes */}
           <Route

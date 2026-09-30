@@ -756,4 +756,23 @@
   margin-bottom: 8px;
 }
 
+/* Embedded subpages inside Admin Panel (Schedules, Maintenance) */
+.admin-embedded-view {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.admin-embedded-view .schedule-page-wrapper,
+.admin-embedded-view .maintenance-page-wrapper {
+  min-height: auto;
+  background: transparent;
+  padding: 10px 0 30px;
+}
+
+.admin-embedded-view .schedule-container,
+.admin-embedded-view .maintenance-container {
+  max-width: 100%;
+}
+
+
 

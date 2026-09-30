@@ -22,6 +22,7 @@
   --amber-light: #fbbf24;
   --amber-glow: rgba(245, 158, 11, 0.2);
   --amber-bg: rgba(245, 158, 11, 0.12);
+  --amber-gradient: linear-gradient(135deg, #f59e0b, #d97706);
 
   /* Semantic Accents */
   --emerald: #10b981;
@@ -108,11 +109,33 @@ code, pre, .mono-num, .price, .badge, .code-text, .metric-value, .timestamp {
   font-family: var(--font-mono);
 }
 
-/* Global Dark Mode Date & Time Pickers Visibility */
+/* Global Dark Mode Date & Time Pickers Visibility & Styling */
 input[type="date"],
 input[type="time"],
 input[type="datetime-local"] {
   color-scheme: dark;
+  background-color: var(--bg-input, #0a1120);
+  color: var(--text-primary, #f8fafc);
+  border: 1px solid var(--border-medium, #2c426b);
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.88rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input[type="date"]:hover,
+input[type="time"]:hover,
+input[type="datetime-local"]:hover {
+  border-color: var(--border-active, #f59e0b);
+}
+
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: var(--amber-primary, #f59e0b);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,

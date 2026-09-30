@@ -239,3 +239,538 @@
   text-align: center;
   padding: 20px 0;
 }
+
+/* =========================================================
+   MAINTENANCE HISTORY & DECOMMISSIONING REPORT STYLES
+   ========================================================= */
+
+.maintenance-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 14px;
+}
+
+.maintenance-tab-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.maintenance-tab-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.maintenance-tab-btn.active {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fb7185;
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.2);
+}
+
+/* Fleet Selector */
+.fleet-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.section-subtext {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.btn-print-dossier {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-print-dossier:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--text-primary);
+}
+
+.fleet-boats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.fleet-boat-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fleet-boat-card:hover {
+  border-color: rgba(244, 63, 94, 0.3);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.fleet-boat-card.selected {
+  border-color: #fb7185;
+  background: rgba(244, 63, 94, 0.08);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.15);
+}
+
+.fleet-boat-card.decommissioned {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.boat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boat-card-icon {
+  font-size: 1.4rem;
+}
+
+.boat-card-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.boat-card-name {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.boat-card-type {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.boat-card-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.boat-status-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.boat-status-tag.available { background: var(--emerald-bg); color: var(--emerald); }
+.boat-status-tag.maintenance { background: var(--amber-bg); color: var(--amber-light); }
+.boat-status-tag.decommissioned { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+.boat-incidents-count {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.boat-advisory-badge-row {
+  margin-top: 2px;
+}
+
+.advisory-pill {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.advisory-pill.optimal { background: var(--emerald-bg); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+.advisory-pill.monitor { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.advisory-pill.active_repair { background: var(--amber-bg); color: var(--amber-light); border: 1px solid rgba(245, 158, 11, 0.3); }
+.advisory-pill.major_overhaul { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); }
+.advisory-pill.decommission_candidate { background: var(--rose-bg); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.4); }
+.advisory-pill.decommissioned { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3); }
+
+/* Selected Boat Profile Dossier Card */
+.profile-dossier-card {
+  margin-top: 10px;
+}
+
+.dossier-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.dossier-vessel-tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.12);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.dossier-vessel-name {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 6px 0;
+}
+
+.dossier-meta {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.status-highlight.available { color: var(--emerald); }
+.status-highlight.maintenance { color: var(--amber-light); }
+.status-highlight.decommissioned { color: #94a3b8; }
+
+.dossier-actions-group {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-decommission-vessel {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-decommission-vessel:hover {
+  background: rgba(244, 63, 94, 0.28);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.3);
+}
+
+.btn-restore-vessel {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-restore-vessel:hover {
+  background: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Dossier KPI Grid */
+.dossier-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.dossier-kpi-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dossier-kpi-card.critical {
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.dossier-kpi-card.risk {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.kpi-sub {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.risk-score-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.risk-gauge-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.risk-gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* Decommission Advisory Box */
+.decommission-advisory-box {
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.decommission-advisory-box.optimal {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.decommission-advisory-box.monitor {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.decommission-advisory-box.major_overhaul {
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.decommission-advisory-box.decommission_candidate {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.decommission-advisory-box.decommissioned {
+  background: rgba(100, 116, 139, 0.15);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.advisory-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.advisory-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.advisory-badge-label {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.advisory-code-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.advisory-text-body {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* History Table Section */
+.history-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-table-header h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.severity-filter-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.sev-pill {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.sev-pill:hover {
+  color: var(--text-primary);
+}
+
+.sev-pill.active {
+  background: var(--bg-card);
+  border-color: #fb7185;
+  color: #fb7185;
+}
+
+.empty-history-box {
+  background: var(--bg-primary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 30px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.ref-tag {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Decommission Modal */
+.decommission-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  max-width: 540px;
+  width: 90%;
+  box-shadow: var(--shadow-2xl);
+  animation: modalSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.decommission-alert-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.decommission-modal-header h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.decommission-modal-header p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.decommission-summary-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+}
+
+.decommission-summary-box strong {
+  color: var(--text-primary);
+}
+
+.decommission-form textarea {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 10px;
+  font-size: 0.88rem;
+  width: 100%;
+}
+
+.btn-confirm-decommission {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-confirm-decommission:hover:not(:disabled) {
+  opacity: 0.92;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
+}
+

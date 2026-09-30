@@ -162,6 +162,8 @@ function Login() {
         </form>
 
         <div className="auth-card-footer">
+          <p>Forgot your password? <button type="button" className="btn-link" onClick={() => navigate("/reset-password")} style={{background:'none', border:'none', color:'var(--primary-color)', cursor:'pointer', textDecoration:'underline'}}>Reset it here</button></p>
+          <br/>
           <p>Don’t have an account yet?</p>
           <button
             type="button"

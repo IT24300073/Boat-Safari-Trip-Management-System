@@ -51,4 +51,13 @@ public class ReportController {
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csvBytes);
     }
+
+    @GetMapping("/boat-utilization")
+    public ResponseEntity<Map<String, Object>> getBoatUtilization(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "month") String period) {
+        Map<String, Object> utilization = reportService.getBoatUtilizationAnalytics(startDate, endDate, period);
+        return ResponseEntity.ok(utilization);
+    }
 }

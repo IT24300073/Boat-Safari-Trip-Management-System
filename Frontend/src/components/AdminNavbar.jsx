@@ -8,8 +8,10 @@ const ADMIN_TABS = [
   { id: "users", label: "👥 Users" },
   { id: "boats", label: "🚤 Boats" },
   { id: "trips", label: "🗺️ Trips" },
+  { id: "schedule", label: "🧭 Schedules & Operators" },
+  { id: "maintenance", label: "🛠️ Fleet Maintenance" },
+  { id: "reports", label: "📊 Reports & Utilization" },
   { id: "feedbacks", label: "💬 Feedbacks" },
-  { id: "reports", label: "📊 Reports & Audit" },
 ];
 
 function AdminNavbar({ activeTab, setActiveTab }) {

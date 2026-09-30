@@ -37,6 +37,12 @@ public class SafariSchedule {
 
     private String remarks;
 
+    private Long guideId;
+
+    private String guideLicense;
+
+    private boolean operatorConfirmed = true;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Transient
@@ -95,4 +101,13 @@ public class SafariSchedule {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getGuideId() { return guideId; }
+    public void setGuideId(Long guideId) { this.guideId = guideId; }
+
+    public String getGuideLicense() { return guideLicense; }
+    public void setGuideLicense(String guideLicense) { this.guideLicense = guideLicense; }
+
+    public boolean isOperatorConfirmed() { return operatorConfirmed; }
+    public void setOperatorConfirmed(boolean operatorConfirmed) { this.operatorConfirmed = operatorConfirmed; }
 }

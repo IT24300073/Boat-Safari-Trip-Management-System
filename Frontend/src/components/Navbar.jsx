@@ -7,13 +7,19 @@ function Navbar() {
   const location = useLocation();
   const { isLoggedIn, user } = useAuth();
 
-  if (location.pathname.startsWith("/admin") || location.pathname.startsWith("/report")) {
+  const isAdmin = user?.role === "ADMIN";
+  const isStaff = user?.role === "STAFF";
+  const isUser = user?.role === "USER";
+
+  if (
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/report") ||
+    (isAdmin && (location.pathname.startsWith("/schedule") || location.pathname.startsWith("/maintenance")))
+  ) {
     return null;
   }
 
   const isActive = (path) => location.pathname === path;
-  const isStaff = user?.role === "STAFF";
-  const isAdmin = user?.role === "ADMIN";
 
   const brandTarget = isLoggedIn
     ? (isAdmin ? "/admin" : (isStaff ? "/schedule" : "/booktrip"))
@@ -41,8 +47,8 @@ function Navbar() {
           ) : (
             /* Logged in: Role-based navigation */
             <>
-              {/* Regular USER & ADMIN tabs: Book Trip & Feedback (hidden for STAFF) */}
-              {!isStaff && (
+              {/* Regular USER only tabs: Book Trip, My Bookings & Feedback */}
+              {isUser && (
                 <>
                   <Link to="/booktrip" className={`nav-link ${isActive("/booktrip") ? "active" : ""}`}>
                     Book Trip
@@ -56,8 +62,8 @@ function Navbar() {
                 </>
               )}
 
-              {/* STAFF & ADMIN tabs: Maintenance & Schedule (hidden for USER) */}
-              {(isStaff || isAdmin) && (
+              {/* STAFF only tabs: Maintenance & Schedule (hidden for USER & ADMIN) */}
+              {isStaff && (
                 <>
                   <Link to="/schedule" className={`nav-link ${isActive("/schedule") ? "active" : ""}`}>
                     🧭 Schedule

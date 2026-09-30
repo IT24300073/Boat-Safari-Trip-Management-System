@@ -4,6 +4,8 @@ import SE.BOAT.SAFARI.Booking.Booking;
 import SE.BOAT.SAFARI.Booking.BookingRepository;
 import SE.BOAT.SAFARI.Schedule.SafariSchedule;
 import SE.BOAT.SAFARI.Schedule.SafariScheduleRepository;
+import SE.BOAT.SAFARI.BoatManagement.Boat;
+import SE.BOAT.SAFARI.BoatManagement.BoatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,9 @@ public class ReportService {
 
     @Autowired
     private SafariScheduleRepository safariScheduleRepository;
+
+    @Autowired
+    private BoatRepository boatRepository;
 
     private void syncScheduleStatus(Booking booking) {
         if (booking != null && booking.getScheduleId() != null && safariScheduleRepository != null) {
@@ -279,5 +284,191 @@ public class ReportService {
         if (input == null) return "\"\"";
         String escaped = input.replace("\"", "\"\"");
         return "\"" + escaped + "\"";
+    }
+
+    public Map<String, Object> getBoatUtilizationAnalytics(String startDateStr, String endDateStr, String period) {
+        LocalDate today = LocalDate.now();
+        LocalDate start = today;
+        LocalDate end = today;
+
+        if (period != null && !period.isEmpty()) {
+            switch (period.toLowerCase()) {
+                case "today":
+                    start = today;
+                    end = today;
+                    break;
+                case "week":
+                    start = today.with(DayOfWeek.MONDAY);
+                    end = today.with(DayOfWeek.SUNDAY);
+                    break;
+                case "month":
+                    start = today.withDayOfMonth(1);
+                    end = today.with(TemporalAdjusters.lastDayOfMonth());
+                    break;
+                case "year":
+                    start = today.withDayOfYear(1);
+                    end = today.with(TemporalAdjusters.lastDayOfYear());
+                    break;
+                case "custom":
+                    if (startDateStr != null && !startDateStr.isEmpty()) start = LocalDate.parse(startDateStr);
+                    if (endDateStr != null && !endDateStr.isEmpty()) end = LocalDate.parse(endDateStr);
+                    break;
+                default:
+                    start = today.withDayOfMonth(1);
+                    end = today.with(TemporalAdjusters.lastDayOfMonth());
+                    break;
+            }
+        } else if (startDateStr != null && !startDateStr.isEmpty() && endDateStr != null && !endDateStr.isEmpty()) {
+            start = LocalDate.parse(startDateStr);
+            end = LocalDate.parse(endDateStr);
+        } else {
+            start = today.withDayOfMonth(1);
+            end = today.with(TemporalAdjusters.lastDayOfMonth());
+        }
+
+        final LocalDate finalStart = start;
+        final LocalDate finalEnd = end;
+
+        long operatingDays = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(finalStart, finalEnd) + 1);
+        int maxSlotsPerBoatInPeriod = (int) operatingDays * 4; // 4 departures daily
+
+        List<Boat> allBoats = boatRepository.findAll();
+        List<Booking> allBookings = bookingRepository.findAll();
+        allBookings.forEach(this::syncScheduleStatus);
+
+        List<Booking> periodBookings = allBookings.stream()
+                .filter(b -> b.getSafariDate() != null &&
+                        !b.getSafariDate().isBefore(finalStart) &&
+                        !b.getSafariDate().isAfter(finalEnd) &&
+                        !"CANCELLED".equalsIgnoreCase(b.getBookingStatus()))
+                .collect(Collectors.toList());
+
+        List<SafariSchedule> allSchedules = safariScheduleRepository.findAll();
+        List<SafariSchedule> periodSchedules = allSchedules.stream()
+                .filter(s -> s.getScheduleDate() != null &&
+                        !s.getScheduleDate().isBefore(finalStart) &&
+                        !s.getScheduleDate().isAfter(finalEnd))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> boatMetricsList = new ArrayList<>();
+        int fleetTotalTrips = 0;
+        int fleetTotalPassengers = 0;
+        double fleetTotalRevenue = 0.0;
+        double sumSlotUtil = 0.0;
+        double sumPassUtil = 0.0;
+
+        for (Boat boat : allBoats) {
+            List<SafariSchedule> boatSchedules = periodSchedules.stream()
+                    .filter(s -> s.getBoatId() == boat.getId())
+                    .collect(Collectors.toList());
+
+            long activeTrips = boatSchedules.stream()
+                    .filter(s -> !"CANCELLED".equalsIgnoreCase(s.getStatus()))
+                    .count();
+
+            long cancelledTrips = boatSchedules.stream()
+                    .filter(s -> "CANCELLED".equalsIgnoreCase(s.getStatus()))
+                    .count();
+
+            List<Booking> boatBookings = periodBookings.stream()
+                    .filter(b -> (b.getBoat() != null && b.getBoat().getId() == boat.getId()) ||
+                            boatSchedules.stream().anyMatch(s -> s.getId().equals(b.getScheduleId())))
+                    .collect(Collectors.toList());
+
+            int passengers = boatBookings.stream()
+                    .mapToInt(b -> b.getPassengers() > 0 ? b.getPassengers() : (b.getAdults() + b.getChildren()))
+                    .sum();
+
+            double revenue = boatBookings.stream()
+                    .mapToDouble(Booking::getTotalPrice)
+                    .sum();
+
+            // Utilization Rates
+            double slotUtilRate = Math.min(100.0, Math.round(((double) activeTrips / Math.max(1, maxSlotsPerBoatInPeriod)) * 1000.0) / 10.0);
+            int maxPassengerCapacity = (int) activeTrips * boat.getCapacity();
+            double passengerUtilRate = activeTrips > 0
+                    ? Math.min(100.0, Math.round(((double) passengers / Math.max(1, maxPassengerCapacity)) * 1000.0) / 10.0)
+                    : 0.0;
+
+            String resourceStatus;
+            String resourceBadge;
+            String recommendation;
+
+            if (passengerUtilRate >= 75.0 || slotUtilRate >= 70.0) {
+                resourceStatus = "HIGH_DEMAND";
+                resourceBadge = "EXPANSION RECOMMENDED";
+                recommendation = "Operating near peak capacity. Additional boats or higher-capacity vessel needed to prevent tourist turnaways.";
+            } else if (passengerUtilRate >= 40.0 || slotUtilRate >= 30.0) {
+                resourceStatus = "BALANCED";
+                resourceBadge = "OPTIMAL UTILIZATION";
+                recommendation = "Boat capacity matches tourist booking demand effectively. Resource allocation is balanced.";
+            } else {
+                resourceStatus = "UNDERUTILIZED";
+                resourceBadge = "CAPACITY SURPLUS";
+                recommendation = "Vessel has substantial spare seats. Can absorb additional marketing promotions or route reallocations.";
+            }
+
+            Map<String, Object> boatData = new HashMap<>();
+            boatData.put("boatId", boat.getId());
+            boatData.put("boatName", boat.getName());
+            boatData.put("boatType", boat.getBoatType());
+            boatData.put("capacity", boat.getCapacity());
+            boatData.put("status", boat.getStatus());
+            boatData.put("activeTrips", activeTrips);
+            boatData.put("cancelledTrips", cancelledTrips);
+            boatData.put("totalBookings", boatBookings.size());
+            boatData.put("passengers", passengers);
+            boatData.put("revenue", revenue);
+            boatData.put("maxPossibleSlots", maxSlotsPerBoatInPeriod);
+            boatData.put("maxPassengerCapacity", maxPassengerCapacity);
+            boatData.put("slotUtilizationRate", slotUtilRate);
+            boatData.put("passengerCapacityUtilizationRate", passengerUtilRate);
+            boatData.put("resourceStatus", resourceStatus);
+            boatData.put("resourceBadge", resourceBadge);
+            boatData.put("recommendation", recommendation);
+
+            boatMetricsList.add(boatData);
+
+            fleetTotalTrips += activeTrips;
+            fleetTotalPassengers += passengers;
+            fleetTotalRevenue += revenue;
+            sumSlotUtil += slotUtilRate;
+            sumPassUtil += passengerUtilRate;
+        }
+
+        double avgSlotUtil = allBoats.isEmpty() ? 0.0 : Math.round((sumSlotUtil / allBoats.size()) * 10.0) / 10.0;
+        double avgPassUtil = allBoats.isEmpty() ? 0.0 : Math.round((sumPassUtil / allBoats.size()) * 10.0) / 10.0;
+
+        // Determine overall fleet advisory for Operations Manager
+        String fleetAdvisory;
+        boolean needsAdditionalResources = false;
+
+        if (avgPassUtil >= 70.0 || boatMetricsList.stream().anyMatch(b -> (double) b.get("passengerCapacityUtilizationRate") >= 85.0)) {
+            fleetAdvisory = "🚨 HIGH FLEET UTILIZATION: Tourist demand is surging. Procuring additional safari boats or scheduling extra departures is STRONGLY RECOMMENDED.";
+            needsAdditionalResources = true;
+        } else if (avgPassUtil >= 40.0) {
+            fleetAdvisory = "⚖️ BALANCED FLEET OPERATIONS: Current fleet resources comfortably service existing bookings with standard operational margins.";
+            needsAdditionalResources = false;
+        } else {
+            fleetAdvisory = "💤 FLEET CAPACITY SURPLUS: Fleet has ample spare headroom. Additional boats are NOT needed at this time; focus on marketing and group packages.";
+            needsAdditionalResources = false;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("startDate", finalStart.toString());
+        result.put("endDate", finalEnd.toString());
+        result.put("period", period != null ? period : "month");
+        result.put("operatingDays", operatingDays);
+        result.put("totalBoats", allBoats.size());
+        result.put("fleetTotalTrips", fleetTotalTrips);
+        result.put("fleetTotalPassengers", fleetTotalPassengers);
+        result.put("fleetTotalRevenue", fleetTotalRevenue);
+        result.put("averageSlotUtilization", avgSlotUtil);
+        result.put("averagePassengerUtilization", avgPassUtil);
+        result.put("fleetAdvisory", fleetAdvisory);
+        result.put("needsAdditionalResources", needsAdditionalResources);
+        result.put("boatMetrics", boatMetricsList);
+
+        return result;
     }
 }

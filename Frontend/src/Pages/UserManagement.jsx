@@ -427,7 +427,31 @@ function UserManagement() {
             )}
           </div>
 
-          {/* Section 4: Account Actions */}
+          {/* Section 4: Role Elevation Request */}
+          {user?.role === 'STAFF' && (
+            <div className="profile-card-section">
+              <h3>📈 Role Elevation Request</h3>
+              <p className="section-hint">Need more permissions? Request an account upgrade to ADMIN.</p>
+              <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+                <button 
+                  className="btn-update-pass"
+                  style={{background: 'var(--amber-light)'}}
+                  onClick={async () => {
+                    try {
+                      await axios.post(`http://localhost:8080/api/users/${user.id}/request-role`, { role: 'ADMIN' });
+                      alert("Role elevation to ADMIN requested successfully!");
+                    } catch (e) {
+                      alert("Failed to request role elevation.");
+                    }
+                  }}
+                >
+                  Request ADMIN Access
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Section 5: Account Actions */}
           <div className="profile-card-section danger">
             <h3>🚪 Account Session</h3>
             <p className="section-hint">Sign out of your active safari management session.</p>

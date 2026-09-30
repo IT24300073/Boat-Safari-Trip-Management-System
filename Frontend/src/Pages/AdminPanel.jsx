@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AdminNavbar from "../components/AdminNavbar";
+import SafariScheduleManager from "./SafariScheduleManager";
+import MaintenanceReport from "./MaintenanceReport";
 
 import "../Styles/AdminPanel.css";
 
@@ -1011,6 +1013,11 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                       ) : (
                         <span style={{ color: "#10b981", fontWeight: 600 }}>Active</span>
                       )}
+                      {u.roleRequestStatus === "PENDING" && (
+                        <div style={{ marginTop: '5px', fontSize: '0.8rem', color: 'var(--amber-light)' }}>
+                          Requesting: {u.requestedRole}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <button onClick={() => handleEditUser(u)}>Edit</button>
@@ -1022,7 +1029,29 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                           Unlock
                         </button>
                       )}
-                      <button onClick={() => handleDeleteUser(u.id)}>Delete</button>
+                      {u.roleRequestStatus === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              axios.post(`http://localhost:8080/api/users/${u.id}/approve-role`)
+                                .then(fetchDashboard).catch(console.error);
+                            }}
+                            style={{ backgroundColor: "#10b981", color: "#fff", marginLeft: "4px" }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => {
+                              axios.post(`http://localhost:8080/api/users/${u.id}/reject-role`)
+                                .then(fetchDashboard).catch(console.error);
+                            }}
+                            style={{ backgroundColor: "#ef4444", color: "#fff", marginLeft: "4px" }}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => handleDeleteUser(u.id)} style={{ marginLeft: "4px" }}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -1478,6 +1507,20 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               )}
             </tbody>
           </table>
+        </section>
+      )}
+
+      {/* ✅ SCHEDULES & OPERATORS */}
+      {activeTab === "schedule" && (
+        <section className="admin-embedded-view">
+          <SafariScheduleManager />
+        </section>
+      )}
+
+      {/* ✅ FLEET MAINTENANCE */}
+      {activeTab === "maintenance" && (
+        <section className="admin-embedded-view">
+          <MaintenanceReport />
         </section>
       )}
     </div>

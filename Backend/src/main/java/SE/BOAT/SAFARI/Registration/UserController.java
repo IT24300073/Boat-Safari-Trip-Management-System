@@ -106,4 +106,32 @@ public class UserController {
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
+
+    @PostMapping("/{id}/request-role")
+    public ResponseEntity<?> requestRoleElevation(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        String requestedRole = body.get("role");
+        if (requestedRole == null || requestedRole.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Requested role cannot be empty."));
+        }
+        boolean success = userService.requestRoleElevation(id, requestedRole.trim().toUpperCase());
+        return success 
+                ? ResponseEntity.ok(Map.of("message", "Role elevation requested successfully."))
+                : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{id}/approve-role")
+    public ResponseEntity<?> approveRoleElevation(@PathVariable Integer id) {
+        boolean success = userService.approveRoleElevation(id);
+        return success 
+                ? ResponseEntity.ok(Map.of("message", "Role elevation approved successfully."))
+                : ResponseEntity.badRequest().body(Map.of("message", "Failed to approve role elevation."));
+    }
+
+    @PostMapping("/{id}/reject-role")
+    public ResponseEntity<?> rejectRoleElevation(@PathVariable Integer id) {
+        boolean success = userService.rejectRoleElevation(id);
+        return success 
+                ? ResponseEntity.ok(Map.of("message", "Role elevation rejected successfully."))
+                : ResponseEntity.badRequest().body(Map.of("message", "Failed to reject role elevation."));
+    }
 }

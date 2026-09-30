@@ -36,6 +36,24 @@ public class DatabaseMigration implements CommandLineRunner {
             jdbcTemplate.execute("DROP TABLE IF EXISTS admins CASCADE");
             jdbcTemplate.execute("UPDATE booking SET passengers = adults + children WHERE passengers IS NULL OR passengers <= 0");
 
+            // Operator & Schedule columns migration
+            jdbcTemplate.execute("ALTER TABLE safari_schedule ADD COLUMN IF NOT EXISTS guide_id BIGINT");
+            jdbcTemplate.execute("ALTER TABLE safari_schedule ADD COLUMN IF NOT EXISTS guide_license VARCHAR(255)");
+            jdbcTemplate.execute("ALTER TABLE safari_schedule ADD COLUMN IF NOT EXISTS operator_confirmed BOOLEAN DEFAULT TRUE");
+            jdbcTemplate.execute("UPDATE safari_schedule SET operator_confirmed = TRUE WHERE operator_confirmed IS NULL");
+
+            // Guides table migration
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS guides (" +
+                    "id BIGSERIAL PRIMARY KEY, " +
+                    "name VARCHAR(255) NOT NULL, " +
+                    "license_number VARCHAR(255) UNIQUE NOT NULL, " +
+                    "qualification VARCHAR(255) NOT NULL, " +
+                    "certified_boat_types VARCHAR(255) NOT NULL, " +
+                    "experience_years INT DEFAULT 5, " +
+                    "contact_phone VARCHAR(255), " +
+                    "rating DOUBLE PRECISION DEFAULT 5.0, " +
+                    "status VARCHAR(50) DEFAULT 'ACTIVE')");
+
             // Migrate any plain text passwords to BCrypt
             userService.migrateLegacyPasswords();
         } catch (Exception e) {

@@ -82,6 +82,9 @@ public class SafariScheduleService {
             existing.setBoatId(scheduleDetails.getBoatId());
             existing.setBoatName(scheduleDetails.getBoatName());
             existing.setGuideName(scheduleDetails.getGuideName());
+            if (scheduleDetails.getGuideId() != null) existing.setGuideId(scheduleDetails.getGuideId());
+            if (scheduleDetails.getGuideLicense() != null) existing.setGuideLicense(scheduleDetails.getGuideLicense());
+            existing.setOperatorConfirmed(scheduleDetails.isOperatorConfirmed());
             if (scheduleDetails.getCancelReason() != null) existing.setCancelReason(scheduleDetails.getCancelReason());
             if (scheduleDetails.getRemarks() != null) existing.setRemarks(scheduleDetails.getRemarks());
             if (scheduleDetails.getStatus() != null) existing.setStatus(scheduleDetails.getStatus());
@@ -92,6 +95,22 @@ public class SafariScheduleService {
 
             SafariSchedule saved = safariScheduleRepository.save(existing);
             notificationService.notifyAffectedTourists(saved, "SCHEDULE_UPDATED", "Schedule details updated by Operations Manager.");
+            return saved;
+        }
+        return null;
+    }
+
+    public SafariSchedule assignQualifiedGuide(Long scheduleId, Long guideId, String guideName, String guideLicense) {
+        Optional<SafariSchedule> existingOpt = safariScheduleRepository.findById(scheduleId);
+        if (existingOpt.isPresent()) {
+            SafariSchedule schedule = existingOpt.get();
+            schedule.setGuideId(guideId);
+            schedule.setGuideName(guideName);
+            schedule.setGuideLicense(guideLicense);
+            schedule.setOperatorConfirmed(true);
+            validateScheduleConflict(schedule, scheduleId);
+            SafariSchedule saved = safariScheduleRepository.save(schedule);
+            notificationService.notifyAffectedTourists(saved, "GUIDE_ASSIGNED", "Qualified operator '" + guideName + "' confirmed for your safari trip.");
             return saved;
         }
         return null;

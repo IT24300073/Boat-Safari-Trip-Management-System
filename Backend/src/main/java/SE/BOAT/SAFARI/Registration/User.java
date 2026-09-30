@@ -34,4 +34,10 @@ public class User {
 
     @Column(name = "account_locked")
     private boolean accountLocked = false;
+
+    @Column(name = "requested_role")
+    private String requestedRole;
+
+    @Column(name = "role_request_status")
+    private String roleRequestStatus;
 }

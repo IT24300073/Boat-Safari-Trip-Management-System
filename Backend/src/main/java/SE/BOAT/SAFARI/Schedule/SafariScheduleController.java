@@ -50,6 +50,22 @@ public class SafariScheduleController {
         }
     }
 
+    @PutMapping("/{id}/assign-guide")
+    public ResponseEntity<?> assignGuide(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            Long guideId = payload.get("guideId") != null ? Long.valueOf(payload.get("guideId").toString()) : null;
+            String guideName = (String) payload.get("guideName");
+            String guideLicense = (String) payload.get("guideLicense");
+            SafariSchedule updated = safariScheduleService.assignQualifiedGuide(id, guideId, guideName, guideLicense);
+            return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", ex.getMessage(), "conflict", true));
+        }
+    }
+
     @PutMapping("/{id}/cancel")
     public ResponseEntity<SafariSchedule> cancelSchedule(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String reason = payload.getOrDefault("reason", "Cancelled by Operations Manager");
