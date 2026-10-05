@@ -1,0 +1,142 @@
+.group-bookings-content {
+  margin-top: 2rem;
+}
+
+.empty-state, .loading-state, .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.group-booking-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.group-booking-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.group-booking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-gold);
+}
+
+.gb-card-header {
+  padding: 1rem 1.25rem;
+  background: rgba(234, 179, 8, 0.1);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gb-booking-id {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.gb-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.gb-card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gb-detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.gb-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.gb-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.highlight-row {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px dashed var(--accent-gold);
+}
+
+.highlight-value {
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.gb-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-approve, .btn-reject {
+  padding: 1rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-approve {
+  background: transparent;
+  color: #10b981;
+  border-right: 1px solid var(--border-color);
+}
+
+.btn-approve:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.btn-reject {
+  background: transparent;
+  color: #ef4444;
+}
+
+.btn-reject:hover {
+  background: rgba(239, 68, 68, 0.1);
+}

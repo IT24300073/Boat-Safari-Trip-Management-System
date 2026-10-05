@@ -2,3 +2,5 @@ Epic 1 - remove admin role, remaining 3
 Epic 2 - remaining 3	
 Epic 3 remaining 3
 Epic 4  - remaining 4 - refund money when cancelled, Edit change money
+
+roles to add -  operations manager, marketing coordinator, customer service officer, Finanace exe, Guide

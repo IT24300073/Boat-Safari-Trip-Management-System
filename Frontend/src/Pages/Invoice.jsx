@@ -115,6 +115,16 @@ function Invoice() {
               </p>
             </div>
           </div>
+        ) : booking.bookingStatus === "PENDING" ? (
+          <div className="instant-confirmation-banner" style={{ background: "rgba(234, 179, 8, 0.15)", borderColor: "rgba(234, 179, 8, 0.45)" }}>
+            <span className="confirmation-icon" style={{ filter: "none" }}>⏳</span>
+            <div>
+              <strong style={{ color: "#eab308" }}>Group Booking Under Review</strong>
+              <p style={{ color: "#fef08a", marginTop: "4px" }}>
+                Your group booking for {booking.passengers} passengers is currently being reviewed by our operations team.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="instant-confirmation-banner">
             <span className="confirmation-icon">🎉</span>
@@ -137,6 +147,8 @@ function Invoice() {
               <strong>Payment Status:</strong>{" "}
               {booking.bookingStatus === "CANCELLED" || Boolean(booking.cancelReason) ? (
                 <span style={{ color: "#f43f5e", fontWeight: 700 }}>🚫 Cancelled / Refund in Progress</span>
+              ) : booking.bookingStatus === "PENDING" ? (
+                <span style={{ color: "#eab308", fontWeight: 700 }}>⏳ Paid & Pending Approval</span>
               ) : (
                 <span className="status-paid">✓ Paid & Confirmed (Instant)</span>
               )}

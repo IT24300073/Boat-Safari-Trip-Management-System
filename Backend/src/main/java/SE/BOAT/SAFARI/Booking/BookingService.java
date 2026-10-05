@@ -19,6 +19,9 @@ public class BookingService {
     @Autowired(required = false)
     private SE.BOAT.SAFARI.Schedule.SafariScheduleRepository safariScheduleRepository;
 
+    @Autowired
+    private SE.BOAT.SAFARI.Notification.NotificationService notificationService;
+
     public void validateAssignmentConflict(Booking booking, Integer excludeBookingId) {
         // 1. If linked to a SafariSchedule, verify schedule state and inherit date/slot
         if (booking.getScheduleId() != null && safariScheduleRepository != null) {
@@ -65,6 +68,10 @@ public class BookingService {
 
             for (Booking existing : existingMatches) {
                 if (excludeBookingId == null || existing.getId() != excludeBookingId) {
+                    if ("CANCELLED".equalsIgnoreCase(existing.getBookingStatus()) || "REJECTED".equalsIgnoreCase(existing.getBookingStatus())) {
+                        continue; // Do not count cancelled/rejected bookings against capacity
+                    }
+
                     // Prevent assigning the same boat to two different trips during the same time slot
                     if (existing.getTrip() != null && booking.getTrip() != null
                             && !existing.getTrip().getId().equals(booking.getTrip().getId())) {
@@ -98,6 +105,12 @@ public class BookingService {
 
         if (booking.getPassengers() <= 0) {
             booking.setPassengers(booking.getAdults() + booking.getChildren());
+        }
+
+        if (booking.getPassengers() > 5) {
+            booking.setBookingStatus("PENDING");
+        } else if (booking.getBookingStatus() == null || booking.getBookingStatus().trim().isEmpty()) {
+            booking.setBookingStatus("CONFIRMED");
         }
 
         if (booking.getTransactionReference() == null || booking.getTransactionReference().trim().isEmpty()) {
@@ -179,7 +192,14 @@ public class BookingService {
                     existing.setTotalPrice(booking.getTotalPrice());
                     if (booking.getPaymentMethod() != null) existing.setPaymentMethod(booking.getPaymentMethod());
                     if (booking.getPaymentStatus() != null) existing.setPaymentStatus(booking.getPaymentStatus());
-                    if (booking.getBookingStatus() != null) existing.setBookingStatus(booking.getBookingStatus());
+                    if (booking.getBookingStatus() != null) {
+                        String oldStatus = existing.getBookingStatus();
+                        existing.setBookingStatus(booking.getBookingStatus());
+                        if (!booking.getBookingStatus().equalsIgnoreCase(oldStatus) && 
+                            ("CONFIRMED".equalsIgnoreCase(booking.getBookingStatus()) || "REJECTED".equalsIgnoreCase(booking.getBookingStatus()))) {
+                            notificationService.notifyBookingStatusChange(existing, booking.getBookingStatus());
+                        }
+                    }
                     if (booking.getCancelReason() != null) existing.setCancelReason(booking.getCancelReason());
                     return bookingRepository.save(existing);
                 }).orElse(null);

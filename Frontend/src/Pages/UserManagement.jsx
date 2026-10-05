@@ -199,6 +199,10 @@ function UserManagement() {
                 ? "⚡ System Admin"
                 : user?.role === "STAFF"
                 ? "🧭 Safari Staff"
+                : user?.role === "OPERATION_MANAGER"
+                ? "📅 Operations Manager"
+                : user?.role === "MARKETING_COORDINATOR"
+                ? "📈 Marketing Coordinator"
                 : "⚓ Registered Explorer"}
             </span>
           </div>

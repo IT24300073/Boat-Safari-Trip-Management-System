@@ -63,6 +63,36 @@ public class NotificationService {
         }
     }
 
+    public void notifyBookingStatusChange(Booking booking, String status) {
+        if (booking == null || booking.getEmail() == null || booking.getEmail().trim().isEmpty()) return;
+
+        Notification n = new Notification();
+        n.setRecipientEmail(booking.getEmail().trim());
+        n.setRecipientName(booking.getName());
+        n.setRead(false);
+        n.setCreatedAt(LocalDateTime.now());
+        
+        if ("CONFIRMED".equalsIgnoreCase(status)) {
+            n.setType("BOOKING_APPROVED");
+            n.setTitle("✅ Group Booking Approved!");
+            n.setMessage(String.format(
+                    "Dear %s, great news! Your group booking for %d passengers on %s has been APPROVED. Your safari is confirmed.",
+                    booking.getName(), booking.getPassengers(), booking.getSafariDate()
+            ));
+        } else if ("REJECTED".equalsIgnoreCase(status)) {
+            n.setType("BOOKING_REJECTED");
+            n.setTitle("❌ Group Booking Rejected");
+            n.setMessage(String.format(
+                    "Dear %s, unfortunately your group booking on %s could not be accommodated and was rejected by Operations.",
+                    booking.getName(), booking.getSafariDate()
+            ));
+        } else {
+            return;
+        }
+        
+        notificationRepository.save(n);
+    }
+
     public List<Notification> getNotificationsForUser(String email) {
         return notificationRepository.findByRecipientEmailIgnoreCaseOrderByCreatedAtDesc(email);
     }

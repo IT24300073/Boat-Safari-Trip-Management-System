@@ -912,6 +912,10 @@ function MyBookings() {
                         <span className="status-badge status-cancelled">
                           🚫 Cancelled
                         </span>
+                      ) : b.bookingStatus === "PENDING" ? (
+                        <span className="status-badge status-pending" style={{ background: "rgba(234, 179, 8, 0.15)", color: "#eab308", border: "1px solid rgba(234, 179, 8, 0.3)" }}>
+                          ⏳ Pending Approval
+                        </span>
                       ) : (
                         <>
                           {timing === "today" && (
@@ -953,7 +957,7 @@ function MyBookings() {
                         <span className="cancellation-banner-icon">⚠️</span>
                         <div className="cancellation-text-block">
                           <div className="cancellation-heading">
-                            Reason for Cancellation:
+                            Reason for Cancellation / Rejection:
                           </div>
                           <div className="cancellation-reason-quote">
                             "{b.cancelReason || "Adverse weather or river navigation restrictions"}"

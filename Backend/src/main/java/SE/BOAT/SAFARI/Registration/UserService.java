@@ -71,6 +71,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
     public enum LoginStatus {
         SUCCESS,
         INVALID_CREDENTIALS,

@@ -19,6 +19,12 @@ function Login() {
         navigate("/admin");
       } else if (user?.role === "STAFF") {
         navigate("/schedule");
+      } else if (user?.role === "OPERATION_MANAGER") {
+        navigate("/operations-dashboard");
+      } else if (user?.role === "MARKETING_COORDINATOR") {
+        navigate("/marketing-dashboard");
+      } else if (user?.role === "CUSTOMER_SERVICE_OFFICER") {
+        navigate("/cso-register");
       } else {
         navigate("/booktrip");
       }
@@ -63,6 +69,12 @@ function Login() {
           navigate("/admin");
         } else if (response.data.role === "STAFF") {
           navigate("/schedule");
+        } else if (response.data.role === "OPERATION_MANAGER") {
+          navigate("/operations-dashboard");
+        } else if (response.data.role === "MARKETING_COORDINATOR") {
+          navigate("/marketing-dashboard");
+        } else if (response.data.role === "CUSTOMER_SERVICE_OFFICER") {
+          navigate("/cso-register");
         } else {
           navigate("/booktrip");
         }

@@ -182,11 +182,28 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
 
   // Save User
   const handleSaveUser = () => {
+    // Basic frontend validation
+    if (!userForm.name || userForm.name.trim().length < 2) {
+      return alert("Please enter a valid user name (at least 2 characters).");
+    }
+    if (!userForm.email && !userForm.phone) {
+      return alert("Please provide either an Email Address or a Phone Number.");
+    }
+    if (userForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
+      return alert("Please enter a valid email address.");
+    }
+    if (userForm.phone && userForm.phone.trim().length !== 10) {
+      return alert("Phone Number must be exactly 10 digits.");
+    }
+    if (!userForm.id && (!userForm.password || userForm.password.trim().length < 6)) {
+      return alert("Please provide a password (at least 6 characters) for new users.");
+    }
+
     const payload = {
-      name: userForm.name,
-      email: userForm.email,
-      phone: userForm.phone,
-      password: userForm.password,
+      name: userForm.name.trim(),
+      email: userForm.email ? userForm.email.trim() : null,
+      phone: userForm.phone ? userForm.phone.trim() : null,
+      password: userForm.password ? userForm.password.trim() : "",
       role: userForm.role
     };
 
@@ -196,10 +213,18 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
 
     apiCall
       .then(() => {
+        alert(userForm.id ? "User updated successfully!" : "User registered successfully!");
         setUserForm({ id: null, name: "", email: "", phone: "", password: "", role: "USER" });
         fetchDashboard();
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Save User Error:", err);
+        if (err.response && err.response.status === 409) {
+          alert("Error: An account already exists with this Email or Phone number.");
+        } else {
+          alert("Failed to save user. Please check the inputs and try again.");
+        }
+      });
   };
 
   // Edit User
@@ -1020,38 +1045,45 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                       )}
                     </td>
                     <td>
-                      <button onClick={() => handleEditUser(u)}>Edit</button>
-                      {u.accountLocked && (
-                        <button
-                          onClick={() => handleUnlockUser(u.id)}
-                          style={{ backgroundColor: "#0284c7", color: "#fff", marginLeft: "4px" }}
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                        <button onClick={() => handleEditUser(u)}>Edit</button>
+                        {u.accountLocked && (
+                          <button
+                            onClick={() => handleUnlockUser(u.id)}
+                            style={{ backgroundColor: "#0284c7", color: "#fff" }}
+                          >
+                            Unlock
+                          </button>
+                        )}
+                        {u.roleRequestStatus === "PENDING" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                axios.post(`http://localhost:8080/api/users/${u.id}/approve-role`)
+                                  .then(fetchDashboard).catch(console.error);
+                              }}
+                              style={{ backgroundColor: "#10b981", color: "#fff" }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                axios.post(`http://localhost:8080/api/users/${u.id}/reject-role`)
+                                  .then(fetchDashboard).catch(console.error);
+                              }}
+                              style={{ backgroundColor: "#ef4444", color: "#fff" }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteUser(u.id)}
+                          style={{ backgroundColor: "rgba(244, 63, 94, 0.15)", color: "#f43f5e", border: "1px solid rgba(244, 63, 94, 0.3)" }}
                         >
-                          Unlock
+                          Delete
                         </button>
-                      )}
-                      {u.roleRequestStatus === "PENDING" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              axios.post(`http://localhost:8080/api/users/${u.id}/approve-role`)
-                                .then(fetchDashboard).catch(console.error);
-                            }}
-                            style={{ backgroundColor: "#10b981", color: "#fff", marginLeft: "4px" }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => {
-                              axios.post(`http://localhost:8080/api/users/${u.id}/reject-role`)
-                                .then(fetchDashboard).catch(console.error);
-                            }}
-                            style={{ backgroundColor: "#ef4444", color: "#fff", marginLeft: "4px" }}
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      <button onClick={() => handleDeleteUser(u.id)} style={{ marginLeft: "4px" }}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1089,6 +1121,9 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
             <select name="role" value={userForm.role} onChange={handleUserChange}>
               <option value="USER">USER</option>
               <option value="STAFF">STAFF</option>
+              <option value="OPERATION_MANAGER">OPERATION MANAGER</option>
+              <option value="MARKETING_COORDINATOR">MARKETING COORDINATOR</option>
+              <option value="CUSTOMER_SERVICE_OFFICER">CUSTOMER SERVICE OFFICER</option>
             </select>
             <button onClick={handleSaveUser}>
               {userForm.id ? "Update User" : "Add User"}

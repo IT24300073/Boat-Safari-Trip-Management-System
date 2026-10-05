@@ -24,6 +24,15 @@ public class UserController {
                 : ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("exists", false));
+        }
+        boolean exists = userService.existsByEmail(email.trim());
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginUser) {
         UserService.LoginResult result = userService.processLogin(loginUser);

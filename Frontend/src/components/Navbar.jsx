@@ -10,6 +10,9 @@ function Navbar() {
   const isAdmin = user?.role === "ADMIN";
   const isStaff = user?.role === "STAFF";
   const isUser = user?.role === "USER";
+  const isOpManager = user?.role === "OPERATION_MANAGER";
+  const isMarketing = user?.role === "MARKETING_COORDINATOR";
+  const isCSO = user?.role === "CUSTOMER_SERVICE_OFFICER";
 
   if (
     location.pathname.startsWith("/admin") ||
@@ -22,7 +25,7 @@ function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const brandTarget = isLoggedIn
-    ? (isAdmin ? "/admin" : (isStaff ? "/schedule" : "/booktrip"))
+    ? (isAdmin ? "/admin" : (isStaff ? "/schedule" : (isOpManager ? "/operations-dashboard" : (isMarketing ? "/marketing-dashboard" : (isCSO ? "/cso-register" : "/booktrip")))))
     : "/";
 
   return (
@@ -70,6 +73,40 @@ function Navbar() {
                   </Link>
                   <Link to="/maintenance" className={`nav-link ${isActive("/maintenance") ? "active" : ""}`}>
                     🛠️ Maintenance
+                  </Link>
+                </>
+              )}
+
+              {/* OPERATION_MANAGER only tabs */}
+              {isOpManager && (
+                <>
+                  <Link to="/operations-dashboard" className={`nav-link ${isActive("/operations-dashboard") ? "active" : ""}`}>
+                    📅 Upcoming Schedules
+                  </Link>
+                  <Link to="/operations-group-bookings" className={`nav-link ${isActive("/operations-group-bookings") ? "active" : ""}`}>
+                    👥 Group Bookings
+                  </Link>
+                  <Link to="/operations-feedback" className={`nav-link ${isActive("/operations-feedback") ? "active" : ""}`}>
+                    ⭐ Customer Feedback
+                  </Link>
+                </>
+              )}
+
+              {/* MARKETING_COORDINATOR only tabs */}
+              {isMarketing && (
+                <Link to="/marketing-dashboard" className={`nav-link ${isActive("/marketing-dashboard") ? "active" : ""}`}>
+                  📈 Demand Trends
+                </Link>
+              )}
+
+              {/* CUSTOMER_SERVICE_OFFICER only tabs */}
+              {isCSO && (
+                <>
+                  <Link to="/cso-register" className={`nav-link ${isActive("/cso-register") ? "active" : ""}`}>
+                    👤 Register Tourist
+                  </Link>
+                  <Link to="/booktrip" className={`nav-link ${isActive("/booktrip") ? "active" : ""}`}>
+                    🎫 Book Safari
                   </Link>
                 </>
               )}

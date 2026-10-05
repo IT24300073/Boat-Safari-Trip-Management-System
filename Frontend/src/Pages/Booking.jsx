@@ -31,10 +31,13 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
   const [dateSchedules, setDateSchedules] = useState([]);
   const [loadingDateSchedules, setLoadingDateSchedules] = useState(false);
   const [dateChecked, setDateChecked] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null); // null, 'checking', 'exists', 'not_found'
 
-  // Auto-fill logged in user details
+  const isCSO = user?.role === "CUSTOMER_SERVICE_OFFICER";
+
+  // Auto-fill logged in user details (Skip for CSO as they book on behalf of others)
   useEffect(() => {
-    if (isLoggedIn && user) {
+    if (isLoggedIn && user && user.role !== "CUSTOMER_SERVICE_OFFICER") {
       setFormData((prev) => ({
         ...prev,
         name: user.name || prev.name,
@@ -246,6 +249,21 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
         setErrorMessage("");
       }
     }
+
+    if (name === "email" && isCSO) {
+      const emailVal = value.trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        setEmailStatus("checking");
+        fetch(`http://localhost:8080/api/users/check-email?email=${encodeURIComponent(emailVal)}`)
+          .then(res => res.json())
+          .then(data => {
+            setEmailStatus(data.exists ? "exists" : "not_found");
+          })
+          .catch(() => setEmailStatus(null));
+      } else {
+        setEmailStatus(null);
+      }
+    }
   };
 
   const validateForm = () => {
@@ -362,9 +380,13 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
 
       if (response.ok) {
         const savedBooking = await response.json();
-        alert(
-          `✅ Booking successful! Invoice #${savedBooking.id} generated.`
-        );
+        
+        if (bookingData.passengers > 5) {
+          alert(`⚠️ Group Booking for ${bookingData.passengers} passengers is up for review and will be approved shortly by Operations.`);
+        } else {
+          alert(`✅ Booking successful! Invoice #${savedBooking.id} generated.`);
+        }
+        
         setShowBooking(false);
         navigate(`/invoice/${savedBooking.id}`);
       } else {
@@ -423,6 +445,16 @@ function Booking({ setShowBooking, trip, initialDate, initialBoatId, scheduledSl
                   placeholder="email@example.com"
                   required
                 />
+                {isCSO && emailStatus === "not_found" && (
+                  <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "4px" }}>
+                    ⚠️ Email not in database. Please register the user first.
+                  </div>
+                )}
+                {isCSO && emailStatus === "exists" && (
+                  <div style={{ color: "#10b981", fontSize: "0.85rem", marginTop: "4px" }}>
+                    ✅ Tourist found in database.
+                  </div>
+                )}
               </div>
             </div>
 
