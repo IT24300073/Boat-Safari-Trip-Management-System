@@ -1,17 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
+import { useAuth } from "../context/AuthContext";
 import "../Styles/Invoice.css";
 
 function Invoice() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loadingBooking, setLoadingBooking] = useState(true);
   const [downloadError, setDownloadError] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
   const invoiceRef = useRef();
+
+  const handleClose = () => {
+    if (user?.role === "FINANCE_EXECUTIVE") {
+      navigate("/finance-executive");
+    } else if (user?.role === "CUSTOMER_SERVICE_OFFICER") {
+      navigate("/cso-register");
+    } else if (user?.role === "ADMIN") {
+      navigate("/admin");
+    } else if (user?.role === "OPERATION_MANAGER") {
+      navigate("/operations-dashboard");
+    } else {
+      navigate("/booktrip");
+    }
+  };
 
   useEffect(() => {
     setLoadingBooking(true);
@@ -70,8 +86,8 @@ function Invoice() {
       <div className="invoice-loading-screen">
         <div className="error-icon">❌</div>
         <p>Booking reservation record not found.</p>
-        <button className="btn-return-home" onClick={() => navigate("/booktrip")}>
-          Return to Safari Booking
+        <button className="btn-return-home" onClick={handleClose}>
+          Return to Dashboard
         </button>
       </div>
     );
@@ -80,7 +96,7 @@ function Invoice() {
   return (
     <div className="invoice-page-wrapper">
       <div className="invoice-card-container" ref={invoiceRef}>
-        <button className="close-invoice-btn" onClick={() => navigate("/booktrip")} title="Close Invoice">
+        <button className="close-invoice-btn" onClick={handleClose} title="Close Invoice">
           ✕
         </button>
 

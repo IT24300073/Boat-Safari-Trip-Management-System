@@ -4,7 +4,6 @@ import "../Styles/Report.css";
 import { useReactToPrint } from "react-to-print";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import AdminNavbar from "../components/AdminNavbar";
 import {
   Ship,
   Anchor,
@@ -64,7 +63,7 @@ const Report = () => {
   const [utilSortBy, setUtilSortBy] = useState("capacityUtil"); // "capacityUtil", "slotUtil", "revenue", "trips"
   const [utilSearch, setUtilSearch] = useState("");
   const [utilStatusFilter, setUtilStatusFilter] = useState("ALL"); // "ALL", "HIGH_DEMAND", "BALANCED", "UNDERUTILIZED"
-  const [utilDisplayMode, setUtilDisplayMode] = useState("TABLE"); // "TABLE" or "CARDS"
+
 
   const [loading, setLoading] = useState(false);
   const reportRef = useRef();
@@ -364,32 +363,33 @@ const Report = () => {
 
   return (
     <div className="report-page-wrapper">
-      <AdminNavbar activeTab="reports" />
       <div className="report-header-bar">
         <div>
           <span className="report-badge">FINANCIAL & OPERATIONS AUDIT</span>
           <h1>
             {viewMode === "OPERATIONS"
               ? "Business Performance & Revenue Dashboard"
-              : viewMode === "RECONCILIATION"
-              ? "Financial Payment Reconciliation Report"
               : "Boat Utilization Rates & Fleet Capacity Analysis"}
           </h1>
           <p className="header-subtext">
             {viewMode === "OPERATIONS"
               ? "Track confirmed bookings, gross revenue, passenger metrics, and trip cancellations in real time."
-              : viewMode === "RECONCILIATION"
-              ? "Audit settled funds, track voided transactions, export CSV reconciliations, and review gateway distributions."
               : "Analyze slot and passenger capacity utilization across all safari vessels to determine operational resource allocation and fleet expansion needs."}
           </p>
         </div>
 
         <div className="report-actions">
-          {viewMode === "RECONCILIATION" && (
-            <button className="btn-report-action csv-export" onClick={handleDownloadCsv}>
-              📊 Export CSV Spreadsheet
-            </button>
-          )}
+          <button 
+            className="btn-report-action secondary" 
+            style={{background: 'var(--emerald)', color: '#fff', borderColor: 'var(--emerald)'}}
+            onClick={() => {
+              axios.post("http://localhost:8080/api/reports/generate")
+                .then(() => alert("Report data generated successfully! Please refresh or change filter to see updates."))
+                .catch(err => console.error(err));
+            }}
+          >
+            ⚡ Generate Latest Data
+          </button>
           <button className="btn-report-action secondary" onClick={handlePrint}>
             🖨️ Print Report
           </button>
@@ -412,12 +412,6 @@ const Report = () => {
           onClick={() => setViewMode("UTILIZATION")}
         >
           🚤 Fleet Boat Utilization & Capacity Analysis
-        </button>
-        <button
-          className={`mode-tab-btn ${viewMode === "RECONCILIATION" ? "active" : ""}`}
-          onClick={() => setViewMode("RECONCILIATION")}
-        >
-          💳 Payment Reconciliation & Audit
         </button>
       </div>
 
@@ -695,284 +689,7 @@ const Report = () => {
         </>
       )}
 
-      {/* ==================== VIEW MODE 2: PAYMENT RECONCILIATION ==================== */}
-      {viewMode === "RECONCILIATION" && (
-        <>
-          {/* Modernized Reconciliation Filter Bar */}
-          <div className="modern-filter-panel">
-            <div className="filter-header-row">
-              <div className="filter-meta-col">
-                <div className="filter-badge-row">
-                  <span className="filter-icon-badge">💳</span>
-                  <div>
-                    <h4 className="filter-meta-title">Financial Audit Timeframe & Gateway</h4>
-                    <p className="filter-meta-subtitle">
-                      Filter settled funds, voided records, and gateway distribution.
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="filter-presets-wrap">
-                <span className="preset-label">Quick Period:</span>
-                <div className="modern-pills-group">
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "today" ? "active" : ""}`}
-                    onClick={() => handleReconPeriodChange("today")}
-                  >
-                    Today
-                  </button>
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "week" ? "active" : ""}`}
-                    onClick={() => handleReconPeriodChange("week")}
-                  >
-                    This Week
-                  </button>
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "month" ? "active" : ""}`}
-                    onClick={() => handleReconPeriodChange("month")}
-                  >
-                    This Month
-                  </button>
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "year" ? "active" : ""}`}
-                    onClick={() => handleReconPeriodChange("year")}
-                  >
-                    This Year
-                  </button>
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "all" ? "active" : ""}`}
-                    onClick={() => handleReconPeriodChange("all")}
-                  >
-                    All Time
-                  </button>
-                  <button
-                    type="button"
-                    className={`modern-pill ${reconPeriod === "custom" ? "active" : ""}`}
-                    onClick={() => setReconPeriod("custom")}
-                  >
-                    Custom Range
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleReconSearch} className="modern-date-toolbar">
-              <div className="date-field-group">
-                <label className="date-field-label">
-                  <span className="label-dot"></span> Start Date
-                </label>
-                <div className="date-input-container">
-                  <input
-                    type="date"
-                    className="modern-date-picker"
-                    value={reconStartDate}
-                    onChange={(e) => {
-                      setReconStartDate(e.target.value);
-                      setReconPeriod("custom");
-                    }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="date-range-connector">
-                <span className="connector-badge">to</span>
-              </div>
-
-              <div className="date-field-group">
-                <label className="date-field-label">
-                  <span className="label-dot end"></span> End Date
-                </label>
-                <div className="date-input-container">
-                  <input
-                    type="date"
-                    className="modern-date-picker"
-                    value={reconEndDate}
-                    onChange={(e) => {
-                      setReconEndDate(e.target.value);
-                      setReconPeriod("custom");
-                    }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="date-field-group gateway-field">
-                <label className="date-field-label">
-                  <span className="label-dot gateway"></span> Payment Gateway
-                </label>
-                <div className="date-input-container">
-                  <select
-                    value={reconPaymentMethod}
-                    onChange={(e) => handleGatewayChange(e.target.value)}
-                    className="modern-select-picker"
-                  >
-                    <option value="ALL">All Payment Gateways</option>
-                    <option value="CARD">Credit / Debit Card</option>
-                    <option value="PAYPAL">PayPal Digital Wallet</option>
-                    <option value="CASH">Cash On Arrival</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="date-toolbar-actions">
-                <button type="submit" className="btn-modern-apply">
-                  <span className="btn-icon">🔍</span>
-                  <span>Filter Transactions</span>
-                </button>
-
-                <div className="active-preset-badge">
-                  <span>Active:</span>
-                  <strong>{reconPeriod === "custom" ? "CUSTOM RANGE" : reconPeriod.toUpperCase()}</strong>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          {loading ? (
-            <div className="report-loading-state">
-              <div className="spinner"></div>
-              <p>Reconciling transaction records & verifying financial ledger...</p>
-            </div>
-          ) : reconciliation ? (
-            <div className="report-document-card" ref={reportRef}>
-              <div className="doc-header">
-                <div>
-                  <h2>FINANCE EXECUTIVE RECONCILIATION AUDIT</h2>
-                  <p className="doc-title">
-                    Official Payment Reconciliation Statement ({reconciliation.startDate} to {reconciliation.endDate})
-                  </p>
-                </div>
-                <div className="doc-timestamp">
-                  <span>Reconciliation Date:</span>
-                  <strong>{new Date().toLocaleString()}</strong>
-                </div>
-              </div>
-
-              {/* Payment Gateway Summary Cards */}
-              <div className="report-kpi-grid">
-                <div className="kpi-card blue">
-                  <span className="kpi-icon">💳</span>
-                  <span className="kpi-title">Credit / Debit Cards</span>
-                  <span className="kpi-value">LKR {Number(reconciliation.cardRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.cardCount || 0} Settled Transactions</span>
-                </div>
-
-                <div className="kpi-card cyan">
-                  <span className="kpi-icon">🅿️</span>
-                  <span className="kpi-title">PayPal Digital Wallet</span>
-                  <span className="kpi-value">LKR {Number(reconciliation.paypalRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.paypalCount || 0} Settled Transactions</span>
-                </div>
-
-                <div className="kpi-card emerald">
-                  <span className="kpi-icon">💵</span>
-                  <span className="kpi-title">Cash On Arrival</span>
-                  <span className="kpi-value">LKR {Number(reconciliation.cashRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.cashCount || 0} Settled Transactions</span>
-                </div>
-
-                <div className="kpi-card amber">
-                  <span className="kpi-icon">🏦</span>
-                  <span className="kpi-title">Total Settled Funds</span>
-                  <span className="kpi-value">LKR {Number(reconciliation.totalReconciledRevenue || 0).toLocaleString()}</span>
-                  <span className="kpi-subtext">{reconciliation.totalSettledCount || 0} Cleared Funds</span>
-                </div>
-
-                {reconciliation.cancelledRevenue > 0 && (
-                  <div className="kpi-card red">
-                    <span className="kpi-icon">🚫</span>
-                    <span className="kpi-title">Voided / Cancelled</span>
-                    <span className="kpi-value">LKR {Number(reconciliation.cancelledRevenue || 0).toLocaleString()}</span>
-                    <span className="kpi-subtext">{reconciliation.cancelledCount || 0} Void Transactions</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Transaction Ledger Table */}
-              <div className="report-table-section">
-                <h3>Transaction Settlement Ledger ({reconciliation.totalTransactionsCount} Records)</h3>
-                <table className="report-data-table">
-                  <thead>
-                    <tr>
-                      <th>Transaction Ref</th>
-                      <th>Invoice ID</th>
-                      <th>Customer Name</th>
-                      <th>Email</th>
-                      <th>Safari Date</th>
-                      <th>Gateway Method</th>
-                      <th>Status</th>
-                      <th>Amount (LKR)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {!reconciliation.transactions || reconciliation.transactions.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: "center", padding: "24px" }}>
-                          No payment transactions recorded for selected criteria ({reconciliation.startDate} to {reconciliation.endDate}).
-                        </td>
-                      </tr>
-                    ) : (
-                      reconciliation.transactions.map((t) => {
-                        const isCancelled = t.bookingStatus === "CANCELLED" || t.paymentStatus === "REFUNDED";
-                        return (
-                          <tr key={t.id}>
-                            <td>
-                              <span className="txn-ref-badge">
-                                {t.transactionReference || `TXN-${t.id}84920`}
-                              </span>
-                            </td>
-                            <td>#{t.id}</td>
-                            <td><strong>{t.name}</strong></td>
-                            <td>{t.email}</td>
-                            <td>{t.safariDate}</td>
-                            <td>
-                              <span className="gateway-badge">
-                                {t.paymentMethod ? t.paymentMethod.toUpperCase() : "CARD"}
-                              </span>
-                            </td>
-                            <td>
-                              {isCancelled ? (
-                                <div>
-                                  <span className="status-cancelled">❌ Cancelled / Void</span>
-                                  {t.cancelReason && (
-                                    <div className="cancel-reason-note">{t.cancelReason}</div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="status-confirmed">✓ Settled</span>
-                              )}
-                            </td>
-                            <td>
-                              {isCancelled ? (
-                                <span className="amount-void" title="Void transaction - excluded from settled funds">
-                                  LKR {Number(t.totalPrice).toLocaleString()}
-                                </span>
-                              ) : (
-                                <strong>LKR {Number(t.totalPrice).toLocaleString()}</strong>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="report-doc-footer">
-                <p>Confidential Audit Document - Verified by ALOKA Boat Safari Financial Settlement Engine</p>
-              </div>
-            </div>
-          ) : null}
-        </>
-      )}
 
       {/* ==================== VIEW MODE 3: BOAT UTILIZATION & CAPACITY ANALYSIS ==================== */}
       {viewMode === "UTILIZATION" && (
@@ -1364,7 +1081,7 @@ const Report = () => {
 
               {/* Per-Boat Utilization Table & Visual Cards */}
               {/* Per-Boat Utilization Table & Visual Cards */}
-              <div className="table-responsive-wrapper" style={{ marginTop: "28px" }}>
+              <div className="report-util-card" style={{ marginTop: "28px" }}>
                 <div className="util-table-header-controls">
                   <div className="util-table-title-group">
                     <div className="table-title-badge-row">
@@ -1408,178 +1125,178 @@ const Report = () => {
                       </select>
                     </div>
 
-                    {/* Dual View Switcher */}
-                    <div className="util-view-toggle-group">
-                      <button
-                        type="button"
-                        className={`btn-view-toggle ${utilDisplayMode === "TABLE" ? "active" : ""}`}
-                        onClick={() => setUtilDisplayMode("TABLE")}
-                        title="Tabular audit table view"
-                      >
-                        <TableIcon size={14} />
-                        <span>Table</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-view-toggle ${utilDisplayMode === "CARDS" ? "active" : ""}`}
-                        onClick={() => setUtilDisplayMode("CARDS")}
-                        title="Visual interactive vessel card grid"
-                      >
-                        <LayoutGrid size={14} />
-                        <span>Cards</span>
-                      </button>
-                    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   </div>
                 </div>
 
-                {/* VIEW MODE A: TABLE VIEW */}
-                {utilDisplayMode === "TABLE" && (
-                  <div className="table-scroll-container">
-                    <table className="report-table util-enhanced-table">
-                      <thead>
-                        <tr>
-                          <th><span className="th-content"><Ship size={14} /> Vessel</span></th>
-                          <th><span className="th-content"><Compass size={14} /> Type</span></th>
-                          <th><span className="th-content"><Users size={14} /> Capacity</span></th>
-                          <th><span className="th-content"><Activity size={14} /> Status</span></th>
-                          <th><span className="th-content"><Anchor size={14} /> Expeditions</span></th>
-                          <th><span className="th-content"><Users size={14} /> Guests</span></th>
-                          <th><span className="th-content"><Clock size={14} /> Slot Usage</span></th>
-                          <th><span className="th-content"><Gauge size={14} /> Seat Fill %</span></th>
-                          <th><span className="th-content"><DollarSign size={14} /> Revenue (LKR)</span></th>
-                          <th><span className="th-content"><TrendingUp size={14} /> Demand Status</span></th>
-                          <th><span className="th-content"><Sparkles size={14} /> Operations Recommendation</span></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedBoatMetrics.length === 0 ? (
-                          <tr>
-                            <td colSpan={11} className="no-records-cell">
-                              <Search size={28} className="empty-search-icon" />
-                              <p>No vessels match the selected filter criteria.</p>
-                            </td>
-                          </tr>
-                        ) : (
-                          sortedBoatMetrics.map((b) => (
-                            <tr key={b.boatId} className={`row-util-${b.resourceStatus?.toLowerCase()}`}>
-                              <td>
-                                <div className="vessel-name-cell">
-                                  <div className="vessel-boat-icon">
-                                    <Ship size={18} />
-                                  </div>
-                                  <div>
-                                    <strong className="vessel-display-name">{b.boatName}</strong>
-                                    <div className="boat-id-sub">#{b.boatId}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <span className="boat-type-chip">{b.boatType || "Standard"}</span>
-                              </td>
-                              <td>
-                                <span className="capacity-pill">{b.capacity} Seats</span>
-                              </td>
-                              <td>
-                                <span className={`status-badge ${b.status?.toLowerCase()}`}>
-                                  <span className="status-dot"></span>
-                                  {b.status || "AVAILABLE"}
-                                </span>
-                              </td>
-                              <td>
-                                <div className="expeditions-cell">
-                                  <span className="expedition-count">{b.activeTrips}</span>
-                                  {b.cancelledTrips > 0 && (
-                                    <span className="cancelled-trips-sub">({b.cancelledTrips} can)</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                <div className="passengers-cell">
-                                  <span className="passengers-count">{b.passengers}</span>
-                                  <span className="passengers-sub">guests</span>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="rate-cell">
-                                  <div className="rate-value-row">
-                                    <span className="rate-number">{b.slotUtilizationRate}%</span>
-                                  </div>
-                                  <div className="mini-progress-bar">
-                                    <div
-                                      className="mini-progress-fill slot"
-                                      style={{ width: `${Math.min(100, b.slotUtilizationRate)}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="rate-cell">
-                                  <div className="rate-value-row">
-                                    <span className="rate-number highlight">
-                                      {b.passengerCapacityUtilizationRate}%
-                                    </span>
-                                  </div>
-                                  <div className="mini-progress-bar">
-                                    <div
-                                      className={`mini-progress-fill ${
-                                        b.passengerCapacityUtilizationRate >= 75
-                                          ? "critical"
-                                          : b.passengerCapacityUtilizationRate >= 40
-                                          ? "optimal"
-                                          : "surplus"
-                                      }`}
-                                      style={{ width: `${Math.min(100, b.passengerCapacityUtilizationRate)}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <strong className="revenue-val">
-                                  LKR {Number(b.revenue).toLocaleString()}
-                                </strong>
-                              </td>
-                              <td>
-                                <span
-                                  className={`resource-badge ${
-                                    b.resourceStatus === "HIGH_DEMAND"
-                                      ? "high-demand"
-                                      : b.resourceStatus === "BALANCED"
-                                      ? "balanced"
-                                      : "surplus"
-                                  }`}
-                                >
-                                  {b.resourceStatus === "HIGH_DEMAND" ? (
-                                    <Flame size={12} className="badge-icon-svg" />
-                                  ) : b.resourceStatus === "BALANCED" ? (
-                                    <Scale size={12} className="badge-icon-svg" />
-                                  ) : (
-                                    <Sparkles size={12} className="badge-icon-svg" />
-                                  )}
-                                  {b.resourceBadge}
-                                </span>
-                              </td>
-                              <td className="recommendation-cell">
-                                <div className="recommendation-box">
-                                  {b.resourceStatus === "HIGH_DEMAND" ? (
-                                    <AlertTriangle size={15} className="rec-icon-svg high" />
-                                  ) : b.resourceStatus === "BALANCED" ? (
-                                    <CheckCircle2 size={15} className="rec-icon-svg balanced" />
-                                  ) : (
-                                    <Info size={15} className="rec-icon-svg surplus" />
-                                  )}
-                                  <span>{b.recommendation}</span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                 {/* VIEW MODE B: VISUAL CARDS GRID */}
-                {utilDisplayMode === "CARDS" && (
+
                   <div className="util-cards-grid">
                     {sortedBoatMetrics.length === 0 ? (
                       <div className="no-cards-placeholder">
@@ -1700,7 +1417,7 @@ const Report = () => {
                       ))
                     )}
                   </div>
-                )}
+
               </div>
 
               <div className="report-doc-footer">

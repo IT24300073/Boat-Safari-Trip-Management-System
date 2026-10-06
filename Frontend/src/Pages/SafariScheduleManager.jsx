@@ -783,7 +783,8 @@ function SafariScheduleManager() {
               <p>No safari schedules registered. Use the form above to schedule your first expedition.</p>
             </div>
           ) : (
-            <div className="table-responsive-wrapper">
+            <>
+              <div className="schedule-table-container table-responsive-wrapper">
               <table className="schedule-table">
                 <thead>
                   <tr>
@@ -925,81 +926,82 @@ function SafariScheduleManager() {
                   )}
                 </tbody>
               </table>
-
-              {/* Pagination Bar */}
-              {totalRecords > 0 && (
-                <div className="pagination-bar">
-                  <div className="pagination-info">
-                    Showing{" "}
-                    <strong>{(currentPage - 1) * recordsPerPage + 1}</strong>{" "}
-                    to{" "}
-                    <strong>{Math.min(currentPage * recordsPerPage, totalRecords)}</strong>{" "}
-                    of <strong>{totalRecords}</strong> records
-                    <span className="pagination-page-tag">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                  </div>
-
-                  <div className="pagination-controls">
-                    <button
-                      type="button"
-                      className="page-nav-btn"
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                      title="First Page"
-                    >
-                      ⏮ First
-                    </button>
-                    <button
-                      type="button"
-                      className="page-nav-btn"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      title="Previous Page"
-                    >
-                      ◀ Prev
-                    </button>
-
-                    {getPageNumbers().map((page, idx) =>
-                      page === "..." ? (
-                        <span key={`ellipsis-${idx}`} className="pagination-ellipsis">
-                          ...
-                        </span>
-                      ) : (
-                        <button
-                          key={page}
-                          type="button"
-                          className={`page-num-btn ${currentPage === page ? "active" : ""}`}
-                          onClick={() => setCurrentPage(page)}
-                        >
-                          {page}
-                        </button>
-                      )
-                    )}
-
-                    <button
-                      type="button"
-                      className="page-nav-btn"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      title="Next Page"
-                    >
-                      Next ▶
-                    </button>
-                    <button
-                      type="button"
-                      className="page-nav-btn"
-                      onClick={() => setCurrentPage(totalPages)}
-                      disabled={currentPage === totalPages}
-                      title="Last Page"
-                    >
-                      Last ⏭
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
+
+            {/* Pagination Bar */}
+            {totalRecords > 0 && (
+              <div className="pagination-bar">
+                <div className="pagination-info">
+                  Showing{" "}
+                  <strong>{(currentPage - 1) * recordsPerPage + 1}</strong>{" "}
+                  to{" "}
+                  <strong>{Math.min(currentPage * recordsPerPage, totalRecords)}</strong>{" "}
+                  of <strong>{totalRecords}</strong> records
+                  <span className="pagination-page-tag">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+
+                <div className="pagination-controls">
+                  <button
+                    type="button"
+                    className="page-nav-btn"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="First Page"
+                  >
+                    ⏮ First
+                  </button>
+                  <button
+                    type="button"
+                    className="page-nav-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    title="Previous Page"
+                  >
+                    ◀ Prev
+                  </button>
+
+                  {getPageNumbers().map((page, idx) =>
+                    page === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="pagination-ellipsis">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        type="button"
+                        className={`page-num-btn ${currentPage === page ? "active" : ""}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    type="button"
+                    className="page-nav-btn"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    title="Next Page"
+                  >
+                    Next ▶
+                  </button>
+                  <button
+                    type="button"
+                    className="page-nav-btn"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="Last Page"
+                  >
+                    Last ⏭
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         </div>
 
         {/* Quick Assign Operator Modal */}

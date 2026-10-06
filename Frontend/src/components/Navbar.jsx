@@ -13,10 +13,10 @@ function Navbar() {
   const isOpManager = user?.role === "OPERATION_MANAGER";
   const isMarketing = user?.role === "MARKETING_COORDINATOR";
   const isCSO = user?.role === "CUSTOMER_SERVICE_OFFICER";
+  const isFinanceExecutive = user?.role === "FINANCE_EXECUTIVE";
 
   if (
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/report") ||
     (isAdmin && (location.pathname.startsWith("/schedule") || location.pathname.startsWith("/maintenance")))
   ) {
     return null;
@@ -25,7 +25,7 @@ function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const brandTarget = isLoggedIn
-    ? (isAdmin ? "/admin" : (isStaff ? "/schedule" : (isOpManager ? "/operations-dashboard" : (isMarketing ? "/marketing-dashboard" : (isCSO ? "/cso-register" : "/booktrip")))))
+    ? (isAdmin ? "/admin" : (isStaff ? "/schedule" : (isOpManager ? "/operations-dashboard" : (isMarketing ? "/marketing-dashboard" : (isCSO ? "/cso-register" : (isFinanceExecutive ? "/finance-executive" : "/booktrip"))))))
     : "/";
 
   return (
@@ -65,12 +65,9 @@ function Navbar() {
                 </>
               )}
 
-              {/* STAFF only tabs: Maintenance & Schedule (hidden for USER & ADMIN) */}
+              {/* STAFF only tabs: Maintenance (hidden for USER & ADMIN) */}
               {isStaff && (
                 <>
-                  <Link to="/schedule" className={`nav-link ${isActive("/schedule") ? "active" : ""}`}>
-                    🧭 Schedule
-                  </Link>
                   <Link to="/maintenance" className={`nav-link ${isActive("/maintenance") ? "active" : ""}`}>
                     🛠️ Maintenance
                   </Link>
@@ -80,14 +77,20 @@ function Navbar() {
               {/* OPERATION_MANAGER only tabs */}
               {isOpManager && (
                 <>
+                  <Link to="/schedule" className={`nav-link ${isActive("/schedule") ? "active" : ""}`}>
+                    🧭 Safari Fleet Schedules
+                  </Link>
                   <Link to="/operations-dashboard" className={`nav-link ${isActive("/operations-dashboard") ? "active" : ""}`}>
-                    📅 Upcoming Schedules
+                    📅 Upcoming Trips
                   </Link>
                   <Link to="/operations-group-bookings" className={`nav-link ${isActive("/operations-group-bookings") ? "active" : ""}`}>
                     👥 Group Bookings
                   </Link>
                   <Link to="/operations-feedback" className={`nav-link ${isActive("/operations-feedback") ? "active" : ""}`}>
                     ⭐ Customer Feedback
+                  </Link>
+                  <Link to="/report" className={`nav-link ${isActive("/report") ? "active" : ""}`}>
+                    📊 Operations Audit
                   </Link>
                 </>
               )}
@@ -109,6 +112,13 @@ function Navbar() {
                     🎫 Book Safari
                   </Link>
                 </>
+              )}
+
+              {/* FINANCE_EXECUTIVE only tabs */}
+              {isFinanceExecutive && (
+                <Link to="/finance-executive" className={`nav-link ${isActive("/finance-executive") ? "active" : ""}`}>
+                  💳 Finance Panel
+                </Link>
               )}
 
               <div className="nav-user-group">

@@ -6,6 +6,7 @@ import AdminRoute from "./components/AdminRoute";
 import OperationManagerRoute from "./components/OperationManagerRoute";
 import MarketingRoute from "./components/MarketingRoute";
 import CustomerServiceRoute from "./components/CustomerServiceRoute";
+import FinanceExecutiveRoute from "./components/FinanceExecutiveRoute";
 import Home from "./Pages/Home";
 import AdminPanel from "./Pages/AdminPanel";
 import OperationsDashboard from "./Pages/OperationsDashboard";
@@ -21,6 +22,7 @@ import Feedback from "./Pages/Feedback";
 import Booktrip from "./Pages/Booktrip";
 import Report from "./Pages/Report";
 import Invoice from "./Pages/Invoice";
+import FinanceExecutivePanel from "./Pages/FinanceExecutivePanel";
 import UserManagement from "./Pages/UserManagement";
 import MaintenanceReport from "./Pages/MaintenanceReport";
 import SafariScheduleManager from "./Pages/SafariScheduleManager";
@@ -67,9 +69,9 @@ function App() {
           <Route
             path="/schedule"
             element={
-              <PrivateRoute>
+              <OperationManagerRoute>
                 <SafariScheduleManager />
-              </PrivateRoute>
+              </OperationManagerRoute>
             }
           />
           <Route
@@ -121,6 +123,14 @@ function App() {
             }
           />
           <Route
+            path="/finance-executive"
+            element={
+              <FinanceExecutiveRoute>
+                <FinanceExecutivePanel />
+              </FinanceExecutiveRoute>
+            }
+          />
+          <Route
             path="/feedback"
             element={
               <PrivateRoute>
@@ -131,9 +141,9 @@ function App() {
           <Route
             path="/report"
             element={
-              <PrivateRoute>
+              <OperationManagerRoute>
                 <Report />
-              </PrivateRoute>
+              </OperationManagerRoute>
             }
           />
           <Route

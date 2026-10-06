@@ -141,3 +141,54 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(1) brightness(1.2) drop-shadow(0 0 5px rgba(245, 158, 11, 0.8));
 }
 
+/* ==========================================================================
+   Global Responsive Table Scrolling & Scrollbar Styles
+   ========================================================================== */
+.table-responsive-wrapper,
+.table-scroll-container,
+.admin-table-container,
+.schedule-table-container {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #f59e0b #0a1120;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar,
+.table-scroll-container::-webkit-scrollbar,
+.admin-table-container::-webkit-scrollbar,
+.schedule-table-container::-webkit-scrollbar {
+  height: 10px !important;
+  width: 10px !important;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-track,
+.table-scroll-container::-webkit-scrollbar-track,
+.admin-table-container::-webkit-scrollbar-track,
+.schedule-table-container::-webkit-scrollbar-track {
+  background: #0a1120 !important;
+  border-radius: 6px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-thumb,
+.table-scroll-container::-webkit-scrollbar-thumb,
+.admin-table-container::-webkit-scrollbar-thumb,
+.schedule-table-container::-webkit-scrollbar-thumb {
+  background: #f59e0b !important;
+  border-radius: 6px;
+  border: 2px solid #0a1120;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover,
+.table-scroll-container::-webkit-scrollbar-thumb:hover,
+.admin-table-container::-webkit-scrollbar-thumb:hover,
+.schedule-table-container::-webkit-scrollbar-thumb:hover {
+  background: #fbbf24 !important;
+}
+
+

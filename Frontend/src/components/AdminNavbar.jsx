@@ -10,7 +10,6 @@ const ADMIN_TABS = [
   { id: "trips", label: "🗺️ Trips" },
   { id: "schedule", label: "🧭 Schedules & Operators" },
   { id: "maintenance", label: "🛠️ Fleet Maintenance" },
-  { id: "reports", label: "📊 Reports & Utilization" },
   { id: "feedbacks", label: "💬 Feedbacks" },
 ];
 
@@ -25,12 +24,6 @@ function AdminNavbar({ activeTab, setActiveTab }) {
   };
 
   const handleTabClick = (tabId) => {
-    if (tabId === "reports") {
-      if (location.pathname !== "/report") {
-        navigate("/report");
-      }
-      return;
-    }
 
     if (location.pathname === "/admin") {
       if (setActiveTab) {

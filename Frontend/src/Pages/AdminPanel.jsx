@@ -612,21 +612,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
         <section>
           <h2>Safari Bookings Management</h2>
           {/* --- REPORT BUTTON --- */}
-          <div className="report-action" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-            <button
-              className="generate-report-btn"
-              onClick={() => {
-                axios
-                  .post("http://localhost:8080/api/reports/generate")
-                  .then((res) => {
-                    console.log("Report generated:", res.data);
-                    navigate("/report");
-                  })
-                  .catch((err) => console.error(err));
-              }}
-            >
-              📊 Financial & Operations Report
-            </button>
+          <div className="report-action" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", paddingBottom: "12px" }}>
 
             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
               Total Reservations: <strong>{bookings.length}</strong>
@@ -637,7 +623,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           {bookings.length === 0 ? (
             <p>No bookings found.</p>
           ) : (
-            <table className="admin-table">
+            <div className="admin-table-container table-responsive-wrapper"><table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -804,7 +790,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
 
           {/* Admin Booking Reservation Form (Temporarily Commented Out)
@@ -1012,7 +998,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           {users.length === 0 ? (
             <p>No users found.</p>
           ) : (
-            <table className="admin-table">
+            <div className="admin-table-container table-responsive-wrapper"><table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -1088,7 +1074,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
 
           {/* User Form */}
@@ -1124,6 +1110,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               <option value="OPERATION_MANAGER">OPERATION MANAGER</option>
               <option value="MARKETING_COORDINATOR">MARKETING COORDINATOR</option>
               <option value="CUSTOMER_SERVICE_OFFICER">CUSTOMER SERVICE OFFICER</option>
+              <option value="FINANCE_EXECUTIVE">FINANCE EXECUTIVE</option>
             </select>
             <button onClick={handleSaveUser}>
               {userForm.id ? "Update User" : "Add User"}
@@ -1276,8 +1263,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           </div>
 
           {/* Registered Boats Records Table */}
-          <div className="table-responsive">
-            <table className="admin-table">
+          <div className="admin-table-container table-responsive-wrapper"><table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -1327,8 +1313,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                   ))
                 )}
               </tbody>
-            </table>
-          </div>
+            </table></div>
         </section>
       )}
       {/* ✅ FEEDBACKS */}
@@ -1369,7 +1354,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
     {feedbacks.length === 0 ? (
       <p className="no-data-text">No feedbacks available.</p>
     ) : (
-      <table className="admin-table">
+      <div className="admin-table-container table-responsive-wrapper"><table className="admin-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -1433,7 +1418,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
               </tr>
             ))}
         </tbody>
-      </table>
+      </table></div>
     )}
   </section>
 )}
@@ -1497,7 +1482,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
             </button>
           </div>
 
-          <table className="admin-table">
+          <div className="admin-table-container table-responsive-wrapper"><table className="admin-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -1541,7 +1526,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </section>
       )}
 
