@@ -219,8 +219,11 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       })
       .catch((err) => {
         console.error("Save User Error:", err);
+        const serverMsg = err.response?.data?.message;
         if (err.response && err.response.status === 409) {
-          alert("Error: An account already exists with this Email or Phone number.");
+          alert(serverMsg || "Error: An account already exists with this Email or Phone number.");
+        } else if (serverMsg) {
+          alert(`Error: ${serverMsg}`);
         } else {
           alert("Failed to save user. Please check the inputs and try again.");
         }
@@ -241,6 +244,9 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
 
   // Delete User
   const handleDeleteUser = (id) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
     axios
       .delete(`http://localhost:8080/api/users/${id}`)
       .then(fetchDashboard)

@@ -1,9 +1,12 @@
 package SE.BOAT.SAFARI;
 
+import SE.BOAT.SAFARI.Registration.User;
+import SE.BOAT.SAFARI.Registration.UserRepository;
 import SE.BOAT.SAFARI.Registration.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,6 +17,12 @@ public class DatabaseMigration implements CommandLineRunner {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
@@ -56,6 +65,30 @@ public class DatabaseMigration implements CommandLineRunner {
 
             // Migrate any plain text passwords to BCrypt
             userService.migrateLegacyPasswords();
+
+            // Ensure default admin user exists
+            if (!userRepository.existsByEmail("admin@gmail.com")) {
+                User admin = new User();
+                admin.setName("Admin");
+                admin.setEmail("admin@gmail.com");
+                admin.setPhone("0770000000");
+                admin.setPassword(passwordEncoder.encode("123456789"));
+                admin.setRole("ADMIN");
+                userRepository.save(admin);
+                System.out.println(">>> [MIGRATION] Admin account created: admin@gmail.com");
+            }
+
+            // Ensure default staff user exists
+            if (!userRepository.existsByEmail("staff@gmail.com")) {
+                User staff = new User();
+                staff.setName("Staff");
+                staff.setEmail("staff@gmail.com");
+                staff.setPhone("0770000001");
+                staff.setPassword(passwordEncoder.encode("123456"));
+                staff.setRole("STAFF");
+                userRepository.save(staff);
+                System.out.println(">>> [MIGRATION] Staff account created: staff@gmail.com");
+            }
         } catch (Exception e) {
             System.err.println(">>> [MIGRATION ERROR]: " + e.getMessage());
         }

@@ -17,11 +17,17 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) {
+    public ResponseEntity<?> register(@RequestBody User user) {
+        String email = user.getEmail() != null ? user.getEmail().trim() : null;
+        if (email != null && !email.isEmpty() && userService.existsByEmail(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "An account with email '" + email + "' already exists in the database."));
+        }
         User savedUser = userService.registerUser(user);
         return savedUser != null
                 ? ResponseEntity.ok(savedUser)
-                : ResponseEntity.status(HttpStatus.CONFLICT).build();
+                : ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "An account with this email or phone number already exists in the database."));
     }
 
     @GetMapping("/check-email")

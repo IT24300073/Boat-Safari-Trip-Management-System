@@ -18,7 +18,7 @@ function Login() {
       if (user?.role === "ADMIN") {
         navigate("/admin");
       } else if (user?.role === "STAFF") {
-        navigate("/schedule");
+        navigate("/maintenance");
       } else if (user?.role === "OPERATION_MANAGER") {
         navigate("/operations-dashboard");
       } else if (user?.role === "MARKETING_COORDINATOR") {
@@ -45,13 +45,6 @@ function Login() {
 
     const inputVal = formData.identifier.trim();
 
-    // Hardcoded admin login fallback
-    if (inputVal === "admin@gmail.com" && formData.password === "admin") {
-      login({ id: 112, email: "admin@gmail.com", name: "Admin", role: "ADMIN", phone: "0770000000" });
-      setLoading(false);
-      navigate("/admin");
-      return;
-    }
 
     try {
       const response = await axios.post(
