@@ -412,7 +412,7 @@ function MaintenanceReport() {
                                 </span>
                               </td>
                               <td>
-                                {issue.status === "OPEN" && (
+                                {issue.status === "OPEN" && user?.role === "ADMIN" && (
                                   <button
                                     className="btn-resolve"
                                     onClick={() => handleResolve(issue.id)}
@@ -551,7 +551,7 @@ function MaintenanceReport() {
                           </span>
                         </td>
                         <td>
-                          {item.status === "OPEN" && (
+                          {item.status === "OPEN" && user?.role === "ADMIN" && (
                             <button
                               className="btn-resolve"
                               onClick={() => handleResolve(item.id)}
