@@ -506,6 +506,7 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
       capacity: parseInt(boatForm.capacity),
       price: parseFloat(boatForm.price),
     };
+    if (!payload.id) delete payload.id;
 
     const apiCall = boatForm.id
       ? axios.put(`http://localhost:8080/api/boats/${boatForm.id}`, payload)
@@ -522,16 +523,28 @@ const [feedbackFilter, setFeedbackFilter] = useState("ALL"); // ALL, FLAGGED, RE
           status: "AVAILABLE",
         });
         fetchDashboard();
+        alert(boatForm.id ? "Boat updated successfully!" : "Boat registered successfully!");
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to save boat. " + (err.response?.data?.message || err.message));
+      });
   };
 
   const handleEditBoat = (boat) => setBoatForm(boat);
-  const handleDeleteBoat = (id) =>
+  const handleDeleteBoat = (id) => {
+    if (!window.confirm("Are you sure you want to delete this boat?")) return;
     axios
       .delete(`http://localhost:8080/api/boats/${id}`)
-      .then(fetchDashboard)
-      .catch(console.error);
+      .then(() => {
+        fetchDashboard();
+        alert("Boat deleted successfully!");
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to delete boat. It may be linked to existing bookings or schedules. " + (err.response?.data?.message || err.message));
+      });
+  };
 
   // --- Trip Validation ---
   const validateTrip = (trip) => {
